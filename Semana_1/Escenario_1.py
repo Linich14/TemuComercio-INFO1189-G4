@@ -1,4 +1,4 @@
-# ANTES (SRP)
+    # ANTES (SRP)
 import json
 from datetime import datetime
 
@@ -20,6 +20,12 @@ class ReportManager:
 if __name__ == "__main__":
     ReportManager().run_report()
 
+
+############################################
+
+############################################
+
+############################################
 
 
 # Despues (SRP)
