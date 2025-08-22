@@ -1,6 +1,7 @@
 # ANTES (ISP)
 from abc import ABC, abstractmethod
 
+
 class Worker(ABC):
     @abstractmethod
     def work(self) -> None: ...
@@ -20,4 +21,25 @@ class Robot(Worker):
 if __name__ == "__main__":
     Robot().eat()  # explota/absurdo
 
-# ANTES (ISP)
+# DESPUÉS (ISP)
+class Worker(ABC):
+    @abstractmethod
+    def work(self) -> None: ...
+
+class Eater(ABC):
+    @abstractmethod
+    def eat(self) -> None: ...
+
+class Attendee(ABC):
+    @abstractmethod
+    def attend_meeting(self) -> None: ...
+
+class Robot(Worker, Attendee):
+    def work(self) -> None:
+        print("Produciendo")
+        
+    def attend_meeting(self) -> None:
+        print("¿Tiene sentido que un robot asista?")
+
+if __name__ == "__main__":
+    Robot().eat()  # explota/absurdo
