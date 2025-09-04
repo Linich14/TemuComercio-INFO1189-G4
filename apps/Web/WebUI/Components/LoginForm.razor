@@ -1,0 +1,38 @@
+@namespace WebUI.Components
+@using System.ComponentModel.DataAnnotations
+@inject NavigationManager Navigation
+
+
+<EditForm Model="loginModel" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div>
+        <label for="rut">RUT</label>
+        <InputText id="rut" @bind-Value="loginModel.Rut" />
+    </div>
+    <div>
+        <label for="password">Contraseña</label>
+        <InputText id="password" @bind-Value="loginModel.Password" type="password" />
+    </div>
+    <button type="submit">Entrar</button>
+</EditForm>
+
+
+
+@code {
+    private LoginModel loginModel = new();
+
+    private void HandleValidSubmit()
+    {
+        // Aquí iría la lógica de autenticación (no implementada)
+        Navigation.NavigateTo("/");
+    }
+
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "El RUT es obligatorio")]
+        public string? Rut { get; set; }
+        [Required(ErrorMessage = "La contraseña es obligatoria")]
+        public string? Password { get; set; }
+    }
+}
