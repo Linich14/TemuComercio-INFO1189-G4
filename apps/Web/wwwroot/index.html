@@ -9,20 +9,18 @@
     <link rel="stylesheet" href="css/app.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
 
-
-    <link href="Web.styles.css" rel="stylesheet" />
 </head>
 
-<body>
+<body class="">
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+        <div class="flex flex-col items-center justify-center h-screen">
+            <svg class="animate-spin h-12 w-12 text-indigo-600 mb-4" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+            </svg>
+            <div class="loading-progress-text text-lg text-indigo-700 font-semibold">Cargando aplicación...</div>
+        </div>
     </div>
-
-
     <script src="_framework/blazor.webassembly.js"></script>
 </body>
 
