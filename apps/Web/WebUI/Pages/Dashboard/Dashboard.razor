@@ -1,0 +1,136 @@
+@page "/dashboard"
+@using Application.DTOs
+@using Application.Interfaces
+@using Microsoft.JSInterop
+@inject IAuthenticationService AuthService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="min-h-screen bg-gray-50 p-8">
+    @if (isLoading)
+    {
+        <div class="flex items-center justify-center">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+                <p class="mt-4 text-gray-600">Verificando sesión...</p>
+            </div>
+        </div>
+    }
+    else if (currentUser != null)
+    {
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">¡Bienvenido, @currentUser.UserName!</h1>
+                <p class="text-gray-600">Has iniciado sesión exitosamente en TemuComercio</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-2">Información de Usuario</h2>
+                    <div class="space-y-2 text-sm">
+                        <p><strong>RUT:</strong> @currentUser.UserRut</p>
+                        <p><strong>Email:</strong> @currentUser.UserEmail</p>
+                        <p><strong>Sesión iniciada:</strong> @currentUser.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                        <p><strong>Sesión expira:</strong> @currentUser.ExpiresAt.ToString("dd/MM/yyyy HH:mm")</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Acciones</h2>
+                    <div class="space-y-3">
+                        <button @onclick="ExtendSession" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
+                            Extender Sesión
+                        </button>
+                        <button @onclick="Logout" class="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition">
+                            Cerrar Sesión
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-2">Estado de Sesión</h2>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                            <span>Sesión Activa</span>
+                        </div>
+                        <p class="text-gray-600">ID: @currentUser.SessionId</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="flex items-center justify-center">
+            <div class="text-center">
+                <h1 class="text-2xl font-bold text-gray-900 mb-4">Acceso Denegado</h1>
+                <p class="text-gray-600 mb-6">No tienes una sesión válida</p>
+                <a href="/login" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700 transition">
+                    Iniciar Sesión
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private UserSessionDto? currentUser;
+    private bool isLoading = true;
+    private string? sessionId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentSession();
+    }
+
+    private async Task LoadCurrentSession()
+    {
+        try
+        {
+            sessionId = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "sessionId");
+            
+            if (!string.IsNullOrEmpty(sessionId))
+            {
+                currentUser = await AuthService.GetCurrentSessionAsync(sessionId);
+                
+                if (currentUser == null)
+                {
+                    // Sesión inválida, limpiar localStorage
+                    await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "sessionId");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar sesión: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ExtendSession()
+    {
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            var extended = await AuthService.ExtendSessionAsync(sessionId);
+            if (extended)
+            {
+                await LoadCurrentSession(); // Recargar datos de sesión
+            }
+        }
+    }
+
+    private async Task Logout()
+    {
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            await AuthService.LogoutAsync(sessionId);
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "sessionId");
+        }
+        
+        Navigation.NavigateTo("/welcome", true);
+    }
+}

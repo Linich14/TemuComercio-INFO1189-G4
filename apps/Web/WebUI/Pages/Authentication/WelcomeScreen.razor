@@ -1,0 +1,29 @@
+@page "/welcome"
+@layout Web.WebUI.Shared.AuthLayout
+
+@inject NavigationManager Navigation
+
+<div class="relative min-h-screen m-auto w-full">
+  <!-- Panel oscuro a la derecha -->
+  <div class="absolute inset-y-0   w-full md:w-[480px] bg-black/70 z-0"></div>
+
+  <!-- Contenido centrado dentro del panel derecho -->
+  <div class="absolute inset-y-0  w-full md:w-[480px] z-10 flex items-center justify-center px-6">
+    <div class="bg-white p-8 rounded-[32px] shadow-lg w-full max-w-[400px]">
+      <h1 class="text-3xl font-bold text-[#0058BE] text-center">Bienvenido al sistema</h1>
+      <img src="assets/logo_cuadrado_sinfondo.png" alt="logo temucomercio" class="mx-auto w-48 h-48" />
+      <button
+        @onclick="IrALogin"
+        class="mx-auto block bg-[#537CF2] w-64 py-4 rounded-[32px] shadow text-white active:opacity-80 mb-2">
+        Iniciar Sesión
+      </button>
+    </div>
+  </div>
+</div>
+
+@code {
+    private void IrALogin()
+    {
+        Navigation.NavigateTo("/login");
+    }
+}

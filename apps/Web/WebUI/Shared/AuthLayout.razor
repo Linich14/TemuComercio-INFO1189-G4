@@ -1,9 +1,11 @@
-@namespace Web.Shared
+@namespace Web.WebUI.Shared
 
 @inherits LayoutComponentBase
 
 <div class="min-h-screen w-full absolute overflow-hidden">
     <img src="assets/imagen_welcomescreen.png" alt="Fondo" class="fixed  w-full h-full" />
+
+        
     @Body
 </div>
 
@@ -12,15 +14,15 @@
 
 
 <!--- 
-    <div class="fixed top-0 left-0 w-full h-full -z-10">
+    <div class="fixed top-0 left-0 w-full  -z-10 flex-1 ">
         <iframe
             src="https://www.youtube.com/embed/4PsAq2pfZjM?autoplay=1&mute=1&controls=0&showinfo=0&modestbranding=1&loop=1&playlist=4PsAq2pfZjM&iv_load_policy=3&rel=0"
             frameborder="0"
             allow="autoplay; encrypted-media"
             allowfullscreen
-            class="w-full h-full pointer-events-none"
-            style="object-fit: cover; width: 100vw; height: 100vh; min-width: 100%; min-height: 100%; filter: brightness(0.7);">
+            class="w-full  pointer-events-none object-fill"
+            style=" width: 100vw; height: 100vh; min-width: 80%; min-height: 100%; filter: brightness(0.7);">
         </iframe>
-        falta cerrar el div aqui
+        div
 
 >
