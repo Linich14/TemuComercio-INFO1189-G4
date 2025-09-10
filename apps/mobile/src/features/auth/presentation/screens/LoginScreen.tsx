@@ -54,6 +54,14 @@ export const LoginScreen = () => {
                                     </Text>
                                 </Pressable>
                             </View>
+                            <Text
+                                onPress={() =>
+                                    router.push('/(auth)/recoveryPassword')
+                                }
+                                className="text-md  mt-4 text-center text-gray-500 underline-offset-2 active:text-blue-500"
+                            >
+                                ¿Olvidaste tu contraseña? Apresiona aqui
+                            </Text>
                         </View>
                     </View>
                 </SafeAreaView>
