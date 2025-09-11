@@ -4,7 +4,7 @@ import {
     KeyboardToolbar,
 } from 'react-native-keyboard-controller';
 import { LoginForm } from '../components/LoginForm';
-import { useAuth } from '~/src/providers/AuthProvider';
+import { useAuth } from '~/src/features/auth/presentation/providers/AuthProvider';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 

@@ -1,7 +1,7 @@
 import '../global.css';
 
 import { Slot } from 'expo-router';
-import { AuthProvider } from '~/src/providers/AuthProvider';
+import { AuthProvider } from '~/src/features/auth/presentation/providers/AuthProvider';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 export default function Root() {
