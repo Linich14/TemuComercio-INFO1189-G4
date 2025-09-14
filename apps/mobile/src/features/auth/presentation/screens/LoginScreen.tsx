@@ -60,7 +60,7 @@ export const LoginScreen = () => {
                                 }
                                 className="text-md  mt-4 text-center text-gray-500 underline-offset-2 active:text-blue-500"
                             >
-                                ¿Olvidaste tu contraseña? Apresiona aqui
+                                ¿Olvidaste tu contraseña? Presiona aqui
                             </Text>
                         </View>
                     </View>
