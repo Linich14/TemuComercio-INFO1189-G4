@@ -1,67 +1,73 @@
 import type { AuthRepository } from '../../domain/repositories/AuthRepository';
-import type { User } from '../../domain/entities/User';
+import type { Session } from '../../domain/entities/Session';
 import { Email } from '../../domain/value-objects/Email';
 import { Password } from '../../domain/value-objects/Password';
+import { Rut } from '../../domain/value-objects/Rut';
+import { TokenStorage } from '../../domain/ports/TokenStorage';
+import { UserStorage } from '../../domain/ports/UserStorage';
+import { User } from '../../domain/entities/User';
+
+const MOCK_USER: User = {
+    id: '1',
+    name: 'Demo',
+    lastName: 'User',
+    email: Email.create('axe@gmail.com'),
+    rut: Rut.create('12345678-9'),
+};
 
 export class AuthRepositoryMock implements AuthRepository {
-    async login({
-        email,
-        password,
-    }: {
-        email: Email;
-        password: Password;
-    }): Promise<{ user: User }> {
+    constructor(
+        private tokenStorage: TokenStorage,
+        private userStorage: UserStorage
+    ) {}
+
+    async login(params: { email: Email; password: Password }): Promise<User> {
         await new Promise((r) => setTimeout(r, 600));
-        if (password.toString() !== '123456')
+
+        if (params.password.toString() !== '123456')
             throw new Error('Credenciales inválidas');
-        return {
-            user: {
-                id: '1',
-                name: 'Demo',
-                email: email.toString(),
-                token: 'fake',
-                phone: 234234234,
-            },
-        };
+
+        await this.tokenStorage.saveToken('mock-token');
+        await this.userStorage.saveUser(MOCK_USER);
+        return MOCK_USER;
     }
-    async register({
-        name,
-        phone,
-        email,
-        password,
-    }: {
+
+    async register(params: {
         name: string;
-        phone: number;
+        lastName: string;
+        phone?: number;
         email: Email;
+        run?: string;
+        rut: Rut;
         password: Password;
-    }): Promise<{ user: User }> {
+    }): Promise<User> {
         await new Promise((r) => setTimeout(r, 600));
-        return {
-            user: {
-                id: '1',
-                name: 'Demo',
-                email: email.toString(),
-                token: 'fake',
-                phone: phone,
-            },
-        };
+        await this.tokenStorage.saveToken('mock-token');
+        await this.userStorage.saveUser(MOCK_USER);
+        return MOCK_USER;
     }
+
     async logout(): Promise<void> {
         await new Promise((r) => setTimeout(r, 600));
+        await this.tokenStorage.deleteToken();
+        await this.userStorage.deleteUser();
     }
-    async refreshToken(token: string): Promise<{ user: User }> {
+    async refreshToken(token: string): Promise<User> {
         await new Promise((r) => setTimeout(r, 600));
-        return {
-            user: {
-                id: '1',
-                name: 'Demo',
-                email: Email.toString(),
-                token: 'fake',
-                phone: 234234234,
-            },
-        };
+        return MOCK_USER;
     }
     async recoverPassword(email: Email): Promise<void> {
         await new Promise((r) => setTimeout(r, 600));
+    }
+
+    async isAuthenticated(): Promise<boolean> {
+        const token = await this.tokenStorage.getToken();
+        const user = await this.userStorage.getUser();
+        return !!token && !!user;
+    }
+
+    async getCurrentUser(): Promise<User | null> {
+        const user = await this.userStorage.getUser();
+        return user;
     }
 }

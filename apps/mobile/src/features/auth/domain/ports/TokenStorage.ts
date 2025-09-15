@@ -1,5 +1,5 @@
 export interface TokenStorage {
-    saveToken(): Promise<string | null>;
+    saveToken(token: string): Promise<void>;
     getToken(): Promise<string | null>;
     deleteToken(): Promise<void>;
 }

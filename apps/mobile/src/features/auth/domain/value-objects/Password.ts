@@ -8,7 +8,8 @@ export class Password {
         return this.value;
     }
 
+    // Validacion simple: al menos 6 caracteres
     private static isValid(value: string): boolean {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+        return value.length >= 6;
     }
 }

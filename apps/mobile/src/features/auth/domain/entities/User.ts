@@ -1,7 +1,12 @@
+import { Email } from '../value-objects/Email';
+import { Rut } from '../value-objects/Rut';
+
 export type User = {
     id: string;
     name: string;
-    phone: number;
-    email: string;
-    token: string;
+    lastName: string;
+    phone?: number;
+    email: Email;
+    run?: string;
+    rut: Rut;
 };

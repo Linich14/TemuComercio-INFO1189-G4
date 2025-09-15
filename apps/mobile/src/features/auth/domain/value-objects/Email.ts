@@ -9,6 +9,8 @@ export class Email {
     }
 
     private static isValid(value: string): boolean {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+        const trimmed = value.trim();
+        // Expresión regular más estricta para validar emails comunes
+        return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(trimmed);
     }
 }
