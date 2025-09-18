@@ -1,24 +1,42 @@
 import { View, TextInput, Text, Pressable } from 'react-native';
-import { useLoginViewModel } from '../viewmodels/useLoginViewModel';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useState } from 'react';
 
-export function LoginForm({ onSuccess }: { onSuccess: (u: any) => void }) {
-    const vm = useLoginViewModel();
-    const go = async () => {
-        const r = await vm.submit();
-        if (r.ok) onSuccess(r.user);
+export function LoginForm({
+    onSubmit,
+}: {
+    onSubmit: (form: { email: string; password: string }) => void;
+}) {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = () => {
+        setLoading(true);
+        try {
+            onSubmit({ email, password });
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'Error en el inicio de sesión'
+            );
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
-        <View className="w-full flex-col">
+        <View className="w-full">
             <View className={styles.inputContainer}>
                 <MaterialIcons name="email" size={24} color="gray" />
                 <TextInput
                     className={styles.input_text}
                     placeholderTextColor="#9CA3AF"
                     placeholder="Correo electrónico"
-                    value={vm.email}
-                    onChangeText={vm.setEmail}
+                    value={email}
+                    onChangeText={setEmail}
                     autoCapitalize="none"
                     keyboardType="email-address"
                 />
@@ -29,21 +47,23 @@ export function LoginForm({ onSuccess }: { onSuccess: (u: any) => void }) {
                     placeholderTextColor="#9CA3AF"
                     className={styles.input_text}
                     placeholder="Contraseña"
-                    value={vm.password}
+                    value={password}
                     autoCapitalize="none"
                     secureTextEntry
-                    onChangeText={vm.setPassword}
+                    onChangeText={setPassword}
                 />
             </View>
-            {vm.error && <Text>{vm.error}</Text>}
+            {error ? (
+                <Text className="mb-2 text-center text-red-500">{error}</Text>
+            ) : null}
             <Pressable
                 style={styles.shadow}
                 className="mb-2 justify-center rounded-full bg-[#0071CE] p-4"
-                onPress={go}
-                disabled={vm.loading}
+                onPress={handleSubmit}
+                disabled={loading}
             >
                 <Text className="text-center font-bold text-white">
-                    {vm.loading ? 'Ingresando...' : 'Iniciar Sesión'}
+                    {loading ? 'Ingresando...' : 'Iniciar Sesión'}
                 </Text>
             </Pressable>
         </View>
@@ -52,8 +72,7 @@ export function LoginForm({ onSuccess }: { onSuccess: (u: any) => void }) {
 
 const styles = {
     inputContainer: `flex-row items-center rounded-[2vw] bg-[#e7e6e6] py-3 px-4 mb-3`,
-    input_text: `ml-2 flex-1 text-[#9F9F9F]`,
-    button: `mb-2 justify-center rounded-full bg-[#0071CE] p-2`,
+    input_text: `ml-2 text-[#9F9F9F]`,
     shadow: {
         // iOS
         shadowColor: '#000',
