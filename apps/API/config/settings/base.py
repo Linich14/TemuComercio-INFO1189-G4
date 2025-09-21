@@ -32,7 +32,8 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    'products',  # Django app that bridges to our Clean Architecture
+    'core_models',  # Infrastructure models following Clean Architecture
+    'src.interfaces',  # Clean Architecture interfaces layer
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

@@ -50,13 +50,19 @@ def configure_dependencies():
     Configure all dependencies.
     This should be called during Django startup.
     """
-    from ...core.domain.repositories.product_repository import ProductRepository
-    from ...infrastructure.repositories.supabase_product_repository import SupabaseProductRepository
+    from ...core.domain.repositories.usuario_repository import UsuarioRepository
+    from ...infrastructure.repositories.django_usuario_repository import DjangoUsuarioRepository
     
-    # Register repositories (using Supabase-enhanced repository)
-    container.register(ProductRepository, SupabaseProductRepository)
+    # Register repositories
+    container.register(UsuarioRepository, DjangoUsuarioRepository)
 
 
 def get_container() -> Container:
     """Get the global container instance."""
     return container
+
+
+def get_usuario_repository():
+    """Get UsuarioRepository instance."""
+    from ...core.domain.repositories.usuario_repository import UsuarioRepository
+    return container.get(UsuarioRepository)
