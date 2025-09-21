@@ -32,6 +32,8 @@
         </div>
     }
     
+
+
     @* Campo de Correo Electrónico con ícono *@
     <div class="relative">
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -174,7 +176,8 @@
         }
     }
 
-    // Live email validation support
+
+    // Live email and rut validation support
     private string? emailFormatError;
 
     private void OnEmailInput(ChangeEventArgs e)
@@ -211,7 +214,6 @@
         /// <summary>
         /// Correo electrónico del usuario
         /// </summary>
-        [Required(ErrorMessage = "El correo es obligatorio")]
         [EmailAddress(ErrorMessage = "Formato de correo inválido (ej: usuario@dominio.com)")]
         public string? Email { get; set; }
 

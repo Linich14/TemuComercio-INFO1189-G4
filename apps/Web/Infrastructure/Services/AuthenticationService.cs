@@ -166,13 +166,17 @@ namespace Infrastructure.Services
                 await Task.Delay(1500);
                 
                 // Validación usando servicio de dominio
-                if (!_domainService.CanRegisterUser(request.Rut, request.Email))
+                bool canRegister = _domainService.CanRegisterUser(request.Rut, request.Email);
+                
+                if (!canRegister)
                 {
                     return false;
                 }
 
                 // Verificar que el usuario no exista (simulado)
-                if (IsEmailTaken(request.Email))
+                bool emailTaken = IsEmailTaken(request.Email);
+                
+                if (emailTaken)
                 {
                     return false;
                 }
@@ -181,10 +185,6 @@ namespace Infrastructure.Services
                 // var hashedPassword = _domainService.HashPassword(request.Password);
                 // var user = User.Create(request.Rut, request.Email, hashedPassword, request.RoleId);
                 // await _userRepository.AddAsync(user);
-                
-                // TEMPORAL: Para demo, log del rol seleccionado
-                var roleName = GetRoleName(request.RoleId);
-                Console.WriteLine($"Usuario registrado con rol: {roleName} (ID: {request.RoleId})");
                 
                 return true;
             }

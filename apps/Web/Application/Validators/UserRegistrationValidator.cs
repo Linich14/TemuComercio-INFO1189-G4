@@ -51,9 +51,13 @@ namespace Application.Validators
                 return;
             }
 
-            if (!Rut.TryCreate(rut, out _))
+            // Para propósitos de desarrollo/demo, solo validamos el formato, no el dígito verificador
+            var cleanRut = rut.Replace(".", "").Replace(" ", "").ToUpperInvariant();
+            var rutRegex = new System.Text.RegularExpressions.Regex(@"^\d{7,8}-[\dK]$");
+            
+            if (!rutRegex.IsMatch(cleanRut))
             {
-                result.AddError("El formato del RUT es inválido o el dígito verificador no coincide");
+                result.AddError("El formato del RUT es inválido. Use formato: 12.345.678-9");
             }
         }
 

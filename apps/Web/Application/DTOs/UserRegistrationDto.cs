@@ -16,7 +16,7 @@ namespace Application.DTOs
         /// </summary>
         [Required(ErrorMessage = "El RUT es obligatorio")]
         [StringLength(25, ErrorMessage = "El RUT no puede exceder 25 caracteres")]
-        [RegularExpression(@"^\d{7,8}-[\dkK]$", ErrorMessage = "Formato de RUT inválido (ej: 12345678-9)")]
+        [RegularExpression(@"^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$|^\d{1,4}\.\d{3}-[\dkK]$|^\d{1,4}-[\dkK]$", ErrorMessage = "Formato de RUT inválido (ej: 12.345.678-9)")]
         public string Rut { get; set; } = string.Empty;
 
         /// <summary>

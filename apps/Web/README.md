@@ -2,49 +2,43 @@
 
 ## 📋 Descripción del Proyecto
 
-Este es el frontend de TemuComercio desarrollado en **Blazor WebAssembly** siguiendo principios de **Clean Architecture**. El proyecto está diseñado para trabajar de manera independiente del backend, utilizando servicios de API para la comunicación.
+Este es el frontend de TemuComercio para Web desarrollado en **Blazor WebAssembly** siguiendo principios de **Clean Architecture**. El proyecto está diseñado para trabajar de manera independiente del backend, utilizando servicios de API para la comunicación.
 
-## 🏗️ Arquitectura del Frontend
 
-### Estructura de Carpetas
+## 🏗️ Arquitectura Frontend Implementada
+
+Este proyecto frontend sigue los principios de **Clean Architecture**, **Arquitectura Hexagonal** y **SOLID**, proporcionando una base sólida, mantenible y escalable.
+
+### 📁 Estructura de Capas
 
 ```
 📁 Web/
-├── 📁 Application/
-│   ├── 📁 DTOs/                    # Data Transfer Objects
-│   │   ├── LoginRequestDto.cs      # Datos para solicitud de login
-│   │   ├── LoginResponseDto.cs     # Respuesta del proceso de login
-│   │   └── UserSessionDto.cs       # Datos de sesión del usuario
-│   └── 📁 Services/
-│       └── AuthApiService.cs       # Servicio para comunicación con backend
-│  📁 WebUI/
-│  ├── 📁 Components/
-│  ├── 📁 Authentication/          
-│  │   │   ├── LoginForm.razor         
-│  │   │   └── RecoverPasswordForm.razor 
-│  │   └── 📁 Common/                  
-│  ├── 📁 Pages/
-│  │   ├── 📁 Authentication/          
-│  │   │   ├── Login.razor             
-│  │   │   ├── RecoverPassword.razor   
-│  │   │   └── WelcomeScreen.razor     
-│  │   ├── 📁 Dashboard/               
-│  │   │   └── Dashboard.razor         
-│  │   └── Home.razor                  
-│  └── 📁 Shared/
-│  ├── AuthLayout.razor
-   └── MainLayout.razor     
+├── 📁 Domain/                          # ⭐ CAPA DE DOMINIO
+│   ├── 📁 Entities/                    # Entidades de negocio
+│   ├── 📁 ValueObjects/                # Objetos de valor
+│   └── 📁 Services/                    # Interfaces de servicios de dominio
+│
+├── 📁 Application/                     # ⭐ CAPA DE APLICACIÓN
+│   ├── 📁 DTOs/                        # Objetos de transferencia de datos
+│   ├── 📁 Interfaces/                  # Puertos (Hexagonal Architecture)
+│   └── 📁 Validators/                  # Validadores de reglas de negocio
+│
+├── 📁 Infrastructure/                  # ⭐ CAPA DE INFRAESTRUCTURA
+│   ├── 📁 Services/                    # Implementaciones de servicios
+│   └── 📁 Adapters/                    # Adaptadores externos
+│
+└── 📁 WebUI/                          # ⭐ CAPA DE PRESENTACIÓN
+    ├── 📁 Components/                  # Componentes reutilizables
+    │   └── 📁 Authentication/
+    ├── 📁 Pages/                       # Páginas de la aplicación
+    │   ├── 📁 Authentication/
+    │   ├── 📁 Dashboard/
+    │   └── Home.razor
+    └── 📁 Shared/                      # Layouts compartidos
+
 ```
 
-### Separación de Responsabilidades
-
-#### ✅ **Frontend (Este proyecto)**
-- **Application/DTOs**: Objetos para transferir datos con el backend
-- **Application/Services**: Servicios para comunicación con APIs
-- **WebUI**: Interfaz de usuario (páginas y componentes)
-- **Validaciones de UI**: Formato de RUT, longitud de contraseñas
-- **Gestión de estado local**: localStorage para sessiones
-
+---
 
 ## 🚀 Configuración y Ejecución
 
@@ -86,21 +80,9 @@ El proyecto utiliza **Tailwind CSS** para todos los estilos:
 - **Compilación**: `npm run build:css`
 - **Archivo generado**: `wwwroot/css/app.css`
 
-### Layouts Específicos
-
-- **AuthLayout**: Para login, welcome y recuperar contraseña
-- **MainLayout**: Para páginas internas (dashboard, etc.)
-
-
 
 ## 🔧 Mantenimiento
 
-### Actualizar Dependencias
-
-```powershell
-dotnet list package --outdated
-dotnet add package PackageName --version x.x.x
-```
 
 ### Regenerar CSS
 

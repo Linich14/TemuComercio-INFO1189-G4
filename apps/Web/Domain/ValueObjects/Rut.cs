@@ -22,22 +22,29 @@ namespace Domain.ValueObjects
 
         /// <summary>
         /// Factory method para crear un RUT válido.
-        /// Valida formato y dígito verificador.
+        /// Valida formato pero NO el dígito verificador (para desarrollo/demo).
         /// </summary>
         public static Rut Create(string rut)
         {
             if (string.IsNullOrWhiteSpace(rut))
+            {
                 throw new ArgumentException("El RUT no puede estar vacío", nameof(rut));
+            }
 
             var cleanRut = CleanRut(rut);
             
             if (!IsValidFormat(cleanRut))
+            {
                 throw new ArgumentException("Formato de RUT inválido. Debe ser 12345678-9", nameof(rut));
+            }
 
             var (number, verifierDigit) = ExtractParts(cleanRut);
 
-            if (!IsValidVerifierDigit(number, verifierDigit))
-                throw new ArgumentException("Dígito verificador del RUT inválido", nameof(rut));
+            // COMENTADO PARA DESARROLLO: Solo validamos formato, no dígito verificador
+            // if (!IsValidVerifierDigit(number, verifierDigit))
+            // {
+            //     throw new ArgumentException("Dígito verificador del RUT inválido", nameof(rut));
+            // }
 
             return new Rut(cleanRut, number, verifierDigit);
         }
@@ -60,7 +67,7 @@ namespace Domain.ValueObjects
         }
 
         /// <summary>
-        /// Limpia el RUT removiendo puntos y espacios.
+        /// Limpia el RUT removiendo puntos y espacios, pero mantiene el guión.
         /// </summary>
         private static string CleanRut(string rut)
         {

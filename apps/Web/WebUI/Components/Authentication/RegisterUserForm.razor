@@ -10,11 +10,9 @@
 @using Application.DTOs
 @using Application.Interfaces
 @using Application.Validators
-@using Microsoft.JSInterop
 @using Microsoft.AspNetCore.Components.Forms
 @inject NavigationManager Navigation
 @inject IAuthenticationService AuthService
-@inject IJSRuntime JSRuntime
 
 <EditForm Model="registrationModel" OnValidSubmit="HandleValidSubmit" class="space-y-4">
     <DataAnnotationsValidator />
@@ -43,16 +41,17 @@
     }
     
     @* Campo de RUT con ícono *@
-    <div class="relative">
+    <div class="relative mb-4">
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <!-- ID card icon -->
             <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-6 0" />
             </svg>
         </div>
-        <InputText id="rut" @bind-Value="registrationModel.Rut" @oninput="OnRutInput"
-                   class="w-full pl-10 pr-4 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white" 
-                   placeholder="RUT (ej: 12345678-9)" />
+    <input id="rut" type="text" @oninput="OnRutInput" value="@registrationModel.Rut"
+           maxlength="12"
+           class="w-full pl-10 pr-4 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white" 
+           placeholder="RUT (ej: 12.345.678-9)" />
         @if (!string.IsNullOrEmpty(rutFormatError))
         {
             <div class="text-red-500 text-xs mt-1">@rutFormatError</div>
@@ -112,8 +111,8 @@
             </svg>
         </div>
         <InputSelect id="role" @bind-Value="registrationModel.RoleId" 
-                     class="w-full pl-10 pr-4 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white appearance-none">
-            <option value="0" disabled>Seleccionar Rol</option>
+                     class="w-full pl-10 pr-10 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white appearance-none">
+            <option value="" disabled selected hidden>Seleccionar Rol</option>
             <option value="1">Administrador</option>
             <option value="2">Municipal</option>
             <option value="3">Fiscalizador</option>
@@ -147,7 +146,7 @@
 
 @code {
     // Modelo de datos para el formulario de registro
-    private UserRegistrationDto registrationModel = new();
+    private UserRegistrationDto registrationModel = new UserRegistrationDto();
     
     // Mensaje de error para mostrar al usuario
     private string errorMessage = string.Empty;
@@ -214,19 +213,52 @@
     /// <summary>
     /// Validación en tiempo real del formato de RUT
     /// </summary>
+    /// <summary>
+    /// Validación en tiempo real del formato de RUT
+    /// </summary>
     private void OnRutInput(ChangeEventArgs e)
     {
-        var rut = e.Value?.ToString() ?? string.Empty;
+        var input = e.Value?.ToString() ?? string.Empty;
         
-        if (!string.IsNullOrEmpty(rut))
+        // Filtrar solo caracteres permitidos: dígitos, K, k
+        var filteredInput = new string(input.Where(c => char.IsDigit(c) || c == 'k' || c == 'K').ToArray());
+        
+        // Limitar a máximo 9 caracteres (8 dígitos + 1 verificador)
+        if (filteredInput.Length > 9)
+            filteredInput = filteredInput.Substring(0, 9);
+        
+        if (filteredInput.Length > 1)
         {
-            var isValid = System.Text.RegularExpressions.Regex.IsMatch(rut, @"^\d{7,8}-[\dkK]$");
-            rutFormatError = isValid ? string.Empty : "Formato: 12345678-9";
+            // Separar cuerpo y dígito verificador
+            var cuerpo = filteredInput.Substring(0, filteredInput.Length - 1);
+            var dv = filteredInput[^1];
+            
+            // Formatear según la longitud del cuerpo
+            string formatted = string.Empty;
+            
+            if (cuerpo.Length >= 7) // 8 dígitos: 12.345.678-9
+            {
+                formatted = $"{cuerpo.Substring(0, cuerpo.Length - 6)}.{cuerpo.Substring(cuerpo.Length - 6, 3)}.{cuerpo.Substring(cuerpo.Length - 3, 3)}-{dv}";
+            }
+            else if (cuerpo.Length >= 4) // 5-7 dígitos: 1.234.567-8
+            {
+                formatted = $"{cuerpo.Substring(0, cuerpo.Length - 3)}.{cuerpo.Substring(cuerpo.Length - 3, 3)}-{dv}";
+            }
+            else // 1-4 dígitos: 1234-5
+            {
+                formatted = $"{cuerpo}-{dv}";
+            }
+            
+            registrationModel.Rut = formatted;
         }
         else
         {
-            rutFormatError = string.Empty;
+            registrationModel.Rut = filteredInput;
         }
+        
+        // Validar formato: acepta diferentes longitudes válidas de RUT chileno
+        var regex = new System.Text.RegularExpressions.Regex(@"^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$|^\d{1,4}\.\d{3}-[\dkK]$|^\d{1,4}-[\dkK]$");
+        rutFormatError = (!string.IsNullOrEmpty(registrationModel.Rut) && registrationModel.Rut.Length > 2 && !regex.IsMatch(registrationModel.Rut)) ? "Formato inválido de RUT" : string.Empty;
         
         StateHasChanged();
     }
