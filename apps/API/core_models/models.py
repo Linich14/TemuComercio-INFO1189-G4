@@ -13,14 +13,9 @@ class RolUsuarioModel(models.Model):
     
     rous_id = models.AutoField(primary_key=True)
     rous_nombre = models.CharField(max_length=50, unique=True)
-    rous_descripcion = models.TextField(blank=True, null=True)
-    rous_estado = models.IntegerField(
-        default=1,
-        choices=[(0, 'Deshabilitado'), (1, 'Habilitado')]
-    )
     
     class Meta:
-        db_table = 'Rol_Usuario'
+        db_table = 'rol_usuario'
         verbose_name = 'Rol de Usuario'
         verbose_name_plural = 'Roles de Usuario'
         ordering = ['rous_id']

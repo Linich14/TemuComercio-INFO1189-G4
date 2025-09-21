@@ -41,6 +41,7 @@ class Usuario(BaseEntity):
             rous_id: Role ID reference
         """
         super().__init__(usua_id)
+        self.usua_id = usua_id  # Explicit assignment for compatibility
         self.usua_rut = usua_rut
         self.usua_email = usua_email
         self.usua_pass = usua_pass

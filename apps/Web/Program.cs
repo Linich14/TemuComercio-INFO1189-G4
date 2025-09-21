@@ -13,9 +13,8 @@ builder.RootComponents.Add(typeof(Web.App), "#app");                    // Compo
 builder.RootComponents.Add<HeadOutlet>("head::after");     // Gestión del <head> del documento
 
 // SERVICIOS DE INFRAESTRUCTURA
-// HttpClient configurado para comunicación con el backend (cuando esté disponible)
-// BaseAddress se configura automáticamente según el entorno (desarrollo/producción)
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+// HttpClient configurado para comunicación con el backend Django
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://127.0.0.1:8000/") });
 
 // INYECCIÓN DE DEPENDENCIAS - CLEAN ARCHITECTURE
 // Configuración siguiendo principios de Clean Architecture y SOLID

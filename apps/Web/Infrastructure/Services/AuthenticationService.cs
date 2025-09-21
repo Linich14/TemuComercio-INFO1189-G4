@@ -3,6 +3,8 @@ using Application.Interfaces;
 using Domain.Entities;
 using Domain.Services;
 using Domain.ValueObjects;
+using System.Text;
+using System.Text.Json;
 
 namespace Infrastructure.Services
 {
@@ -13,11 +15,13 @@ namespace Infrastructure.Services
     public class AuthenticationService : IAuthenticationService
     {
         private readonly IAuthenticationDomainService _domainService;
+        private readonly HttpClient _httpClient;
         private readonly Dictionary<string, UserSession> _activeSessions; // Simulación temporal
 
-        public AuthenticationService(IAuthenticationDomainService domainService)
+        public AuthenticationService(IAuthenticationDomainService domainService, HttpClient httpClient)
         {
             _domainService = domainService;
+            _httpClient = httpClient;
             _activeSessions = new Dictionary<string, UserSession>();
         }
 
@@ -157,15 +161,13 @@ namespace Infrastructure.Services
         }
 
         /// <summary>
-        /// Registra un nuevo usuario en el sistema.
+        /// Registra un nuevo usuario en el sistema conectándose al API Django.
         /// </summary>
         public async Task<bool> RegisterUserAsync(UserRegistrationDto request)
         {
             try
             {
-                await Task.Delay(1500);
-                
-                // Validación usando servicio de dominio
+                // Validación usando servicio de dominio local
                 bool canRegister = _domainService.CanRegisterUser(request.Rut, request.Email);
                 
                 if (!canRegister)
@@ -173,23 +175,54 @@ namespace Infrastructure.Services
                     return false;
                 }
 
-                // Verificar que el usuario no exista (simulado)
-                bool emailTaken = IsEmailTaken(request.Email);
-                
-                if (emailTaken)
+                // Mapear a formato esperado por Django
+                var djangoUser = new
                 {
+                    usua_rut = request.Rut,
+                    usua_email = request.Email,
+                    usua_pass = request.Password,
+                    rous_id = request.RoleId
+                };
+
+                // Serializar a JSON
+                var jsonContent = JsonSerializer.Serialize(djangoUser);
+                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+                // Enviar solicitud POST al endpoint Django
+                var response = await _httpClient.PostAsync("api/usuarios/create/", content);
+
+                // Verificar código de respuesta
+                if (response.IsSuccessStatusCode)
+                {
+                    // 201 Created - Usuario registrado exitosamente
+                    return true;
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    // 400 Bad Request - RUT o email ya existe
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    // Log del error si es necesario para debugging
                     return false;
                 }
-
-                // En una implementación real, aquí se guardaría en la base de datos
-                // var hashedPassword = _domainService.HashPassword(request.Password);
-                // var user = User.Create(request.Rut, request.Email, hashedPassword, request.RoleId);
-                // await _userRepository.AddAsync(user);
-                
-                return true;
+                else
+                {
+                    // Otros códigos de error (422, 500, etc.)
+                    return false;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                // Error de conexión con el API
+                return false;
+            }
+            catch (JsonException)
+            {
+                // Error de serialización JSON
+                return false;
             }
             catch
             {
+                // Cualquier otro error
                 return false;
             }
         }

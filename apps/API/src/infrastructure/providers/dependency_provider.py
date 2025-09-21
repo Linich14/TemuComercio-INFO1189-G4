@@ -4,7 +4,6 @@ This module implements the dependency provider for infrastructure layer.
 """
 from ..repositories.django_usuario_repository import DjangoUsuarioRepository
 from ...core.domain.repositories.usuario_repository import UsuarioRepository
-from ...interfaces.api.dependencies import DependencyProvider
 
 
 class InfrastructureDependencyProvider:

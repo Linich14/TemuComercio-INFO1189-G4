@@ -29,6 +29,7 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     'rest_framework',
+    'corsheaders',  # Enable CORS for Blazor frontend
 ]
 
 LOCAL_APPS = [
@@ -39,6 +40,7 @@ LOCAL_APPS = [
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Must be first for CORS
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -124,3 +126,27 @@ REST_FRAMEWORK = {
 # Add src to Python path for imports
 import sys
 sys.path.insert(0, str(BASE_DIR / 'src'))
+
+# CORS settings for Blazor frontend
+CORS_ALLOWED_ORIGINS = [
+    "https://localhost:7056",  # Blazor HTTPS port
+    "http://localhost:5056",   # Blazor HTTP port
+    "https://localhost:7000",  # Alternative Blazor ports
+    "http://localhost:5000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_ALL_ORIGINS = False  # Only allow specific origins
+
+CORS_ALLOWED_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
