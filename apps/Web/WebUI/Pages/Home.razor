@@ -1,8 +1,10 @@
 ﻿@page "/"
 @inject NavigationManager Navigation
 
-// Redirigir a la WelcomeScreen en vez de mostrar la landing directamente
-protected override void OnInitialized()
-{
-    Navigation.NavigateTo("/welcome", true);
+@code {
+    // Redirigir a la WelcomeScreen en vez de mostrar la landing directamente
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo("/welcome", true);
+    }
 }

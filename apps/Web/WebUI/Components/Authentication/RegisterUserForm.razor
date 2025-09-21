@@ -1,0 +1,253 @@
+@*
+    Componente de formulario de registro de usuarios (temporal para administradores)
+    Permite a los administradores ingresar usuarios de muestra manualmente
+    Cumple con SRP: solo se encarga del formulario de registro
+    Cumple con DIP: depende de IAuthenticationService abstracción
+*@
+@namespace Web.WebUI.Components.Authentication
+
+@using System.ComponentModel.DataAnnotations
+@using Application.DTOs
+@using Application.Interfaces
+@using Application.Validators
+@using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components.Forms
+@inject NavigationManager Navigation
+@inject IAuthenticationService AuthService
+@inject IJSRuntime JSRuntime
+
+<EditForm Model="registrationModel" OnValidSubmit="HandleValidSubmit" class="space-y-4">
+    <DataAnnotationsValidator />
+    
+    @* Título del formulario *@
+    <div class="text-center mb-2">
+        <h1 class="text-2xl font-bold text-[#1976D2]">Registro de Usuario</h1>
+        <p class="text-sm text-gray-600 mt-2">Panel temporal para administradores</p>
+        <img src="assets/logo_cuadrado_sinfondo.png" alt="logo temucomercio" class="mx-auto w-32 h-32" />
+    </div>
+    
+    @* Mostrar mensaje de error si existe *@
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            @errorMessage
+        </div>
+    }
+
+    @* Mostrar mensaje de éxito si existe *@
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+            @successMessage
+        </div>
+    }
+    
+    @* Campo de RUT con ícono *@
+    <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <!-- ID card icon -->
+            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-6 0" />
+            </svg>
+        </div>
+        <InputText id="rut" @bind-Value="registrationModel.Rut" @oninput="OnRutInput"
+                   class="w-full pl-10 pr-4 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white" 
+                   placeholder="RUT (ej: 12345678-9)" />
+        @if (!string.IsNullOrEmpty(rutFormatError))
+        {
+            <div class="text-red-500 text-xs mt-1">@rutFormatError</div>
+        }
+        <ValidationMessage For="@(() => registrationModel.Rut)" class="text-red-500 text-xs mt-1" />
+    </div>
+
+    @* Campo de Email con ícono *@
+    <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <!-- Envelope (mail) icon -->
+            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m0 8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h14a2 2 0 012 2v8z" />
+            </svg>
+        </div>
+        <InputText id="email" @bind-Value="registrationModel.Email" @oninput="OnEmailInput"
+                   class="w-full pl-10 pr-4 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white" 
+                   placeholder="Correo Electrónico" />
+        @if (!string.IsNullOrEmpty(emailFormatError))
+        {
+            <div class="text-red-500 text-xs mt-1">@emailFormatError</div>
+        }
+        <ValidationMessage For="@(() => registrationModel.Email)" class="text-red-500 text-xs mt-1" />
+    </div>
+    
+    @* Campo de contraseña con ícono *@
+    <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+        </div>
+        <InputText id="password" @bind-Value="registrationModel.Password" type="password" 
+                   class="w-full pl-10 pr-4 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white" 
+                   placeholder="Contraseña" />
+        <ValidationMessage For="@(() => registrationModel.Password)" class="text-red-500 text-xs mt-1" />
+    </div>
+
+    @* Campo de confirmación de contraseña con ícono *@
+    <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+        <InputText id="confirmPassword" @bind-Value="registrationModel.ConfirmPassword" type="password" 
+                   class="w-full pl-10 pr-4 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white" 
+                   placeholder="Confirmar Contraseña" />
+        <ValidationMessage For="@(() => registrationModel.ConfirmPassword)" class="text-red-500 text-xs mt-1" />
+    </div>
+
+    @* Campo de selección de rol con ícono *@
+    <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+        </div>
+        <InputSelect id="role" @bind-Value="registrationModel.RoleId" 
+                     class="w-full pl-10 pr-4 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white appearance-none">
+            <option value="0" disabled>Seleccionar Rol</option>
+            <option value="1">Administrador</option>
+            <option value="2">Municipal</option>
+            <option value="3">Fiscalizador</option>
+        </InputSelect>
+        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+        </div>
+        <ValidationMessage For="@(() => registrationModel.RoleId)" class="text-red-500 text-xs mt-1" />
+    </div>
+    
+    @* Botón de Registrar Usuario *@
+    <button type="submit" disabled="@isLoading" 
+            class="w-full bg-[#1976D2] text-white py-3 rounded-lg font-medium text-lg disabled:opacity-50 hover:bg-[#1565C0] transition-colors duration-200">
+        @if (isLoading)
+        {
+            <span>Registrando usuario...</span>
+        }
+        else
+        {
+            <span>Registrar Usuario</span>
+        }
+    </button>
+    
+    @* Enlace para volver al dashboard *@
+    <div class="text-center mt-4">
+        <a class="text-[#1976D2] text-sm hover:underline" href="/dashboard">Volver al Dashboard</a>
+    </div>
+</EditForm>
+
+@code {
+    // Modelo de datos para el formulario de registro
+    private UserRegistrationDto registrationModel = new();
+    
+    // Mensaje de error para mostrar al usuario
+    private string errorMessage = string.Empty;
+    
+    // Mensaje de éxito para mostrar al usuario
+    private string successMessage = string.Empty;
+    
+    // Estado de carga
+    private bool isLoading = false;
+    
+    // Errores de formato en tiempo real
+    private string rutFormatError = string.Empty;
+    private string emailFormatError = string.Empty;
+
+    /// <summary>
+    /// Maneja el envío válido del formulario
+    /// </summary>
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+            rutFormatError = string.Empty;
+            emailFormatError = string.Empty;
+
+            // Validar usando el validador de la capa Application
+            var validator = new UserRegistrationValidator();
+            var validationResult = validator.Validate(registrationModel);
+
+            if (!validationResult.IsValid)
+            {
+                errorMessage = validationResult.GetErrorsAsString();
+                return;
+            }
+            
+            // Llamar al servicio de autenticación para registrar el usuario
+            bool success = await AuthService.RegisterUserAsync(registrationModel);
+            
+            if (success)
+            {
+                successMessage = "Usuario registrado exitosamente";
+                // Limpiar el formulario
+                registrationModel = new UserRegistrationDto();
+                StateHasChanged();
+            }
+            else
+            {
+                errorMessage = "Error al registrar el usuario. Verifique que el RUT y email no estén en uso.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error de conexión: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Validación en tiempo real del formato de RUT
+    /// </summary>
+    private void OnRutInput(ChangeEventArgs e)
+    {
+        var rut = e.Value?.ToString() ?? string.Empty;
+        
+        if (!string.IsNullOrEmpty(rut))
+        {
+            var isValid = System.Text.RegularExpressions.Regex.IsMatch(rut, @"^\d{7,8}-[\dkK]$");
+            rutFormatError = isValid ? string.Empty : "Formato: 12345678-9";
+        }
+        else
+        {
+            rutFormatError = string.Empty;
+        }
+        
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Validación en tiempo real del formato de email
+    /// </summary>
+    private void OnEmailInput(ChangeEventArgs e)
+    {
+        var email = e.Value?.ToString() ?? string.Empty;
+        
+        if (!string.IsNullOrEmpty(email))
+        {
+            var isValid = new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email);
+            emailFormatError = isValid ? string.Empty : "Formato de email inválido";
+        }
+        else
+        {
+            emailFormatError = string.Empty;
+        }
+        
+        StateHasChanged();
+    }
+}
