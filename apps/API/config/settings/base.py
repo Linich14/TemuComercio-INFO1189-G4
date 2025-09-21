@@ -33,6 +33,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'products',  # Django app that bridges to our Clean Architecture
+    "auth_service",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -118,6 +119,11 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.JSONParser',
     ],
 }
+
+
+AUTH_USER_MODEL = 'auth_service.CustomUser'
+
+
 
 # Custom settings for Clean Architecture
 # Add src to Python path for imports
