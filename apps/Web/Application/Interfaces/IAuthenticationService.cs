@@ -34,5 +34,11 @@ namespace Application.Interfaces
         /// Extiende la duración de una sesión.
         /// </summary>
         Task<bool> ExtendSessionAsync(string sessionId);
+
+        /// <summary>
+        /// Registra un nuevo usuario en el sistema (solo para administradores).
+        /// Este es un método temporal para permitir el ingreso de usuarios de muestra.
+        /// </summary>
+        Task<bool> RegisterUserAsync(UserRegistrationDto request);
     }
 }

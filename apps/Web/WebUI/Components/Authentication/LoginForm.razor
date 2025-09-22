@@ -9,6 +9,7 @@
 @using System.ComponentModel.DataAnnotations
 @using Application.DTOs
 @using Application.Interfaces
+@using Application.Validators
 @using Microsoft.JSInterop
 @inject NavigationManager Navigation
 @inject IAuthenticationService AuthService
@@ -31,6 +32,8 @@
         </div>
     }
     
+
+
     @* Campo de Correo Electrónico con ícono *@
     <div class="relative">
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -90,6 +93,11 @@
     <div class="text-center mt-2">
         <a class="text-[#1976D2] text-sm hover:underline" href="/recuperar">¿Olvidaste tu contraseña?</a>
     </div>
+    
+    @* Enlace temporal para registro de usuarios *@
+    <div class="text-center mt-2">
+        <a class="text-[#1976D2] text-sm hover:underline" href="/admin/register-user">Registro de Usuario (Temporal)</a>
+    </div>
 </EditForm>
 
 @code {
@@ -108,17 +116,10 @@
     /// </summary>
     private async Task HandleValidSubmit()
     {
-        // Validar email en vivo y en submit
-        if (string.IsNullOrWhiteSpace(loginModel.Email) || !IsValidEmail(loginModel.Email))
-        {
-            emailFormatError = string.IsNullOrWhiteSpace(loginModel.Email)
-                ? "El correo es obligatorio"
-                : "Formato de correo inválido (ej: usuario@dominio.com)";
-            return;
-        }
-        // Activar estado de carga y limpiar errores previos
+        // Limpiar errores previos
         isLoading = true;
         errorMessage = string.Empty;
+        emailFormatError = string.Empty;
         
         try
         {
@@ -129,6 +130,16 @@
                 Password = loginModel.Password ?? string.Empty,
                 RememberMe = loginModel.RememberMe
             };
+
+            // Validar usando el validador de la capa Application
+            var validator = new LoginRequestValidator();
+            var validationResult = validator.Validate(request);
+
+            if (!validationResult.IsValid)
+            {
+                errorMessage = validationResult.GetErrorsAsString();
+                return;
+            }
 
             // Llamar al servicio de autenticación
             var response = await AuthService.LoginAsync(request);
@@ -165,7 +176,8 @@
         }
     }
 
-    // Live email validation support
+
+    // Live email and rut validation support
     private string? emailFormatError;
 
     private void OnEmailInput(ChangeEventArgs e)
@@ -202,7 +214,6 @@
         /// <summary>
         /// Correo electrónico del usuario
         /// </summary>
-        [Required(ErrorMessage = "El correo es obligatorio")]
         [EmailAddress(ErrorMessage = "Formato de correo inválido (ej: usuario@dominio.com)")]
         public string? Email { get; set; }
 
