@@ -26,12 +26,6 @@ namespace Application.DTOs
         public string UserRut { get; set; } = string.Empty;
         
         /// <summary>
-        /// Nombre completo del usuario (nombre + apellido)
-        /// Se muestra en la interfaz para personalizar la experiencia
-        /// </summary>
-        public string UserName { get; set; } = string.Empty;
-        
-        /// <summary>
         /// Dirección de correo electrónico del usuario
         /// Puede utilizarse para notificaciones o recuperación de cuenta
         /// </summary>
@@ -48,6 +42,12 @@ namespace Application.DTOs
         /// Determina hasta cuándo es válida la sesión sin reautenticación
         /// </summary>
         public DateTime ExpiresAt { get; set; }
+        
+        /// <summary>
+        /// ID del rol del usuario (1=Admin, 2=Municipal, 3=Fiscalizador)
+        /// Determina los permisos y funcionalidades disponibles
+        /// </summary>
+        public int RoleId { get; set; }
         
         /// <summary>
         /// Indica si la sesión está activa

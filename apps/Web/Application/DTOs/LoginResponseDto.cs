@@ -20,6 +20,18 @@ namespace Application.DTOs
         public string Message { get; set; } = string.Empty;
         
         /// <summary>
+        /// Token de sesión generado por el backend (solo si el login fue exitoso)
+        /// Este token se almacena en la tabla Sesion_Token y debe enviarse en requests subsecuentes
+        /// </summary>
+        public string? Token { get; set; }
+        
+        /// <summary>
+        /// Fecha de expiración del token en formato UTC (solo si el login fue exitoso)
+        /// Permite al frontend saber cuándo renovar o solicitar nuevo login
+        /// </summary>
+        public DateTime? TokenExpiresAt { get; set; }
+        
+        /// <summary>
         /// ID único de la sesión generada (solo si el login fue exitoso)
         /// Se utiliza para mantener el estado de autenticación del usuario
         /// </summary>
@@ -43,15 +55,19 @@ namespace Application.DTOs
         /// Método factory para crear una respuesta de login exitoso
         /// Simplifica la creación de respuestas positivas con datos consistentes
         /// </summary>
+        /// <param name="token">Token de sesión generado</param>
+        /// <param name="tokenExpiresAt">Fecha de expiración del token</param>
         /// <param name="sessionId">ID de la sesión generada</param>
         /// <param name="userSession">Datos de la sesión del usuario</param>
         /// <returns>LoginResponseDto configurado para éxito</returns>
-        public static LoginResponseDto Success(string sessionId, UserSessionDto userSession)
+        public static LoginResponseDto Success(string token, DateTime tokenExpiresAt, string sessionId, UserSessionDto userSession)
         {
             return new LoginResponseDto
             {
                 IsSuccess = true,
                 Message = "Inicio de sesión exitoso",
+                Token = token,
+                TokenExpiresAt = tokenExpiresAt,
                 SessionId = sessionId,
                 UserSession = userSession
             };

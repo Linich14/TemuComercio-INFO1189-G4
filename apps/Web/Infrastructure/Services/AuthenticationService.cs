@@ -16,119 +16,220 @@ namespace Infrastructure.Services
     {
         private readonly IAuthenticationDomainService _domainService;
         private readonly HttpClient _httpClient;
-        private readonly Dictionary<string, UserSession> _activeSessions; // Simulación temporal
 
         public AuthenticationService(IAuthenticationDomainService domainService, HttpClient httpClient)
         {
             _domainService = domainService;
             _httpClient = httpClient;
-            _activeSessions = new Dictionary<string, UserSession>();
         }
 
         /// <summary>
-        /// Realiza el proceso de autenticación del usuario.
+        /// Realiza el proceso de autenticación del usuario conectándose al API Django.
         /// </summary>
         public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
         {
             try
             {
-                // Simulación de latencia de red
-                await Task.Delay(1000);
-                
                 // Validación de entrada
                 if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
                 {
                     return LoginResponseDto.Failure("Email y contraseña son requeridos");
                 }
 
-                // Buscar usuario simulado
-                var user = GetSimulatedUser(request.Email);
-                if (user == null)
+                // Preparar datos para envío al backend Django
+                var loginData = new
                 {
+                    email = request.Email,
+                    password = request.Password,
+                    remember_me = request.RememberMe
+                };
+
+                // Serializar a JSON
+                var jsonContent = JsonSerializer.Serialize(loginData);
+                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+                // Enviar solicitud POST al endpoint Django de login
+                var response = await _httpClient.PostAsync("api/auth/login/", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    // 200 OK - Login exitoso, parsear respuesta
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    using var document = JsonDocument.Parse(responseContent);
+                    var root = document.RootElement;
+                    
+                    // Verificar si tiene estructura con 'success' y 'data'
+                    if (root.TryGetProperty("success", out var successElement) && 
+                        IsSuccessValue(successElement) && 
+                        root.TryGetProperty("data", out var dataElement))
+                    {
+                        // Estructura: { "success": true, "data": {...} }
+                        return ParseLoginResponse(dataElement);
+                    }
+                    // Si no tiene 'success', pero sí tiene 'data', asumir éxito
+                    else if (root.TryGetProperty("data", out var directDataElement))
+                    {
+                        // Estructura: { "data": {...} }
+                        return ParseLoginResponse(directDataElement);
+                    }
+                    // Si la respuesta directamente tiene token y user
+                    else if (root.TryGetProperty("token", out var _))
+                    {
+                        // Estructura directa: { "token": "...", "user": {...}, ... }
+                        return ParseLoginResponse(root);
+                    }
+                    else
+                    {
+                        // Respuesta exitosa pero estructura desconocida
+                        return LoginResponseDto.Failure("Estructura de respuesta no reconocida");
+                    }
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    // 401 Unauthorized - Credenciales incorrectas
+                    try
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        using var document = JsonDocument.Parse(errorContent);
+                        var root = document.RootElement;
+                        
+                        if (root.TryGetProperty("message", out var messageElement))
+                        {
+                            var message = messageElement.GetString() ?? "Credenciales incorrectas";
+                            return LoginResponseDto.Failure(message);
+                        }
+                    }
+                    catch
+                    {
+                        // Si no se puede parsear la respuesta de error
+                    }
+                    
                     return LoginResponseDto.Failure("Correo o contraseña incorrectos");
                 }
-
-                // Validar credenciales usando servicio de dominio
-                if (!_domainService.ValidateCredentials(user, request.Password))
+                else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
-                    return LoginResponseDto.Failure("Correo o contraseña incorrectos");
+                    // 400 Bad Request - Datos inválidos
+                    try
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        using var document = JsonDocument.Parse(errorContent);
+                        var root = document.RootElement;
+                        
+                        var errors = new List<string>();
+                        if (root.TryGetProperty("errors", out var errorsElement) && errorsElement.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var error in errorsElement.EnumerateArray())
+                            {
+                                var errorText = error.GetString();
+                                if (!string.IsNullOrEmpty(errorText))
+                                    errors.Add(errorText);
+                            }
+                        }
+                        
+                        var message = root.TryGetProperty("message", out var messageElement) 
+                            ? messageElement.GetString() ?? "Datos inválidos"
+                            : "Datos inválidos";
+                            
+                        return LoginResponseDto.Failure(message, errors);
+                    }
+                    catch
+                    {
+                        return LoginResponseDto.Failure("Datos inválidos");
+                    }
                 }
-
-                // Crear sesión usando servicio de dominio
-                var session = _domainService.CreateSession(user, request.RememberMe);
-                _activeSessions[session.SessionId] = session;
-
-                // Convertir a DTO
-                var sessionDto = MapToDto(session);
-                
-                return LoginResponseDto.Success(session.SessionId, sessionDto);
+                else
+                {
+                    // Otros códigos de error
+                    return LoginResponseDto.Failure("Error en el servidor. Intente nuevamente.");
+                }
+            }
+            catch (HttpRequestException)
+            {
+                return LoginResponseDto.Failure("Error de conexión con el servidor");
+            }
+            catch (JsonException)
+            {
+                return LoginResponseDto.Failure("Error al procesar la respuesta del servidor");
             }
             catch (Exception ex)
             {
-                return LoginResponseDto.Failure($"Error de conexión: {ex.Message}");
+                return LoginResponseDto.Failure($"Error inesperado: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Cierra la sesión del usuario.
+        /// Cierra la sesión del usuario enviando el token al API Django.
         /// </summary>
-        public async Task<bool> LogoutAsync(string sessionId)
+        public async Task<bool> LogoutAsync(string token)
         {
             try
             {
-                await Task.Delay(500);
-                
-                if (_activeSessions.TryGetValue(sessionId, out var session))
-                {
-                    session.Deactivate();
-                    _activeSessions.Remove(sessionId);
-                    return true;
-                }
-                
-                return false;
+                if (string.IsNullOrWhiteSpace(token))
+                    return false;
+
+                // Configurar headers de autorización
+                _httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                // Llamar al endpoint de logout de Django
+                var response = await _httpClient.PostAsync("api/auth/logout/", null);
+
+                // Si el response es 200, el logout fue exitoso
+                return response.IsSuccessStatusCode;
             }
-            catch
+            catch (HttpRequestException)
             {
+                // Error de conexión, pero localmente podemos considerar logout exitoso
+                return true;
+            }
+            catch (Exception)
+            {
+                // Cualquier otro error, consideramos logout fallido
                 return false;
             }
         }
 
         /// <summary>
-        /// Valida si una sesión está activa.
+        /// Valida si un token está activo consultando al API Django.
         /// </summary>
-        public async Task<bool> IsSessionValidAsync(string sessionId)
+        public async Task<bool> IsSessionValidAsync(string token)
         {
             try
             {
-                await Task.Delay(300);
-                
-                if (_activeSessions.TryGetValue(sessionId, out var session))
-                {
-                    return session.IsValid();
-                }
-                
+                if (string.IsNullOrWhiteSpace(token))
+                    return false;
+
+                // Configurar headers de autorización
+                _httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                // Llamar al endpoint de verificación de Django
+                var response = await _httpClient.GetAsync("api/auth/verify/");
+
+                // Si el response es 200, el token es válido
+                return response.IsSuccessStatusCode;
+            }
+            catch (HttpRequestException)
+            {
+                // Error de conexión, consideramos token inválido
                 return false;
             }
-            catch
+            catch (Exception)
             {
+                // Cualquier otro error, consideramos token inválido
                 return false;
             }
         }
 
         /// <summary>
-        /// Obtiene los datos de la sesión actual.
+        /// Obtiene los datos de la sesión actual (método legacy con sessionId).
         /// </summary>
         public async Task<UserSessionDto?> GetCurrentSessionAsync(string sessionId)
         {
             try
             {
                 await Task.Delay(300);
-                
-                if (_activeSessions.TryGetValue(sessionId, out var session) && session.IsValid())
-                {
-                    return MapToDto(session);
-                }
-                
+                // TODO: Implementar con API Django si es necesario
                 return null;
             }
             catch
@@ -138,20 +239,14 @@ namespace Infrastructure.Services
         }
 
         /// <summary>
-        /// Extiende la duración de una sesión.
+        /// Extiende la duración de una sesión (método legacy).
         /// </summary>
         public async Task<bool> ExtendSessionAsync(string sessionId)
         {
             try
             {
                 await Task.Delay(300);
-                
-                if (_activeSessions.TryGetValue(sessionId, out var session))
-                {
-                    session.ExtendSession();
-                    return true;
-                }
-                
+                // TODO: Implementar con API Django si es necesario
                 return false;
             }
             catch
@@ -227,61 +322,7 @@ namespace Infrastructure.Services
             }
         }
 
-        #region Métodos Privados - Simulación Temporal
-
-        /// <summary>
-        /// Obtiene un usuario simulado para demo.
-        /// En producción se consultaría la base de datos.
-        /// </summary>
-        private User? GetSimulatedUser(string email)
-        {
-            var simulatedUsers = new Dictionary<string, (string rut, string password, int roleId)>
-            {
-                { "admin@temucomercio.cl", ("12345678-9", "admin123", 1) },
-                { "demo@temucomercio.cl", ("87654321-0", "demo123", 2) },
-                { "test@temucomercio.cl", ("11111111-1", "test123", 2) }
-            };
-
-            if (simulatedUsers.TryGetValue(email.ToLowerInvariant(), out var userData))
-            {
-                var hashedPassword = _domainService.HashPassword(userData.password);
-                return User.Create(userData.rut, email, hashedPassword, userData.roleId);
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Verifica si un email ya está en uso (simulado).
-        /// </summary>
-        private bool IsEmailTaken(string email)
-        {
-            var takenEmails = new[]
-            {
-                "admin@temucomercio.cl",
-                "demo@temucomercio.cl", 
-                "test@temucomercio.cl"
-            };
-            
-            return takenEmails.Contains(email.ToLowerInvariant());
-        }
-
-        /// <summary>
-        /// Convierte una entidad UserSession a DTO.
-        /// </summary>
-        private UserSessionDto MapToDto(UserSession session)
-        {
-            return new UserSessionDto
-            {
-                SessionId = session.SessionId,
-                UserId = session.UserId,
-                UserRut = session.UserRut,
-                UserEmail = session.UserEmail,
-                UserName = session.UserName,
-                CreatedAt = session.CreatedAt,
-                ExpiresAt = session.ExpiresAt
-            };
-        }
+        #region Métodos Utilitarios
 
         /// <summary>
         /// Obtiene el nombre del rol según su ID.
@@ -295,6 +336,194 @@ namespace Infrastructure.Services
                 3 => "Fiscalizador",
                 _ => "Desconocido"
             };
+        }
+
+        #endregion
+
+        #region Métodos de Token Management
+
+        /// <summary>
+        /// Valida si un token de sesión está activo y no ha expirado.
+        /// </summary>
+        public async Task<bool> IsTokenValidAsync(string token)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(token))
+                    return false;
+
+                // Enviar solicitud GET al endpoint Django para validar token
+                _httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var response = await _httpClient.GetAsync("api/auth/verify/");
+
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Cierra la sesión de un usuario usando su token.
+        /// </summary>
+        public async Task<bool> LogoutByTokenAsync(string token)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(token))
+                    return false;
+
+                // Configurar header de autorización
+                _httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                // Enviar solicitud POST al endpoint Django para logout
+                var response = await _httpClient.PostAsync("api/auth/logout/", null);
+
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene los datos de la sesión actual usando el token.
+        /// </summary>
+        public async Task<UserSessionDto?> GetSessionByTokenAsync(string token)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(token))
+                    return null;
+
+                // Configurar header de autorización
+                _httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                // Enviar solicitud GET al endpoint Django para obtener datos de sesión
+                var response = await _httpClient.GetAsync("api/auth/session/");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    // TODO: Deserializar la respuesta JSON del backend Django
+                    // Por ahora retornamos null hasta tener la estructura exacta
+                    return null;
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Método auxiliar para determinar si un JsonElement representa un valor "success" verdadero.
+        /// </summary>
+        private bool IsSuccessValue(JsonElement element)
+        {
+            try
+            {
+                // Intentar como booleano
+                if (element.ValueKind == JsonValueKind.True)
+                    return true;
+                
+                if (element.ValueKind == JsonValueKind.False)
+                    return false;
+
+                // Intentar como string
+                if (element.ValueKind == JsonValueKind.String)
+                {
+                    var stringValue = element.GetString()?.ToLower();
+                    return stringValue == "true" || stringValue == "1" || stringValue == "success";
+                }
+
+                // Intentar como número
+                if (element.ValueKind == JsonValueKind.Number)
+                {
+                    return element.GetInt32() > 0;
+                }
+
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Método auxiliar para parsear la respuesta de login desde un elemento JSON.
+        /// </summary>
+        private LoginResponseDto ParseLoginResponse(JsonElement dataElement)
+        {
+            try
+            {
+                // Extraer token
+                var token = dataElement.TryGetProperty("token", out var tokenElement) 
+                    ? tokenElement.GetString() 
+                    : null;
+
+                // Extraer fecha de expiración
+                var expiresAtString = dataElement.TryGetProperty("expires_at", out var expiresElement) 
+                    ? expiresElement.GetString() 
+                    : null;
+                DateTime.TryParse(expiresAtString, out var expiresAt);
+
+                // Extraer datos del usuario
+                var userElement = dataElement.TryGetProperty("user", out var userElementProp) 
+                    ? userElementProp 
+                    : dataElement; // Si no hay 'user', usar el elemento raíz
+
+                var userId = userElement.TryGetProperty("id", out var idElement) 
+                    ? idElement.GetInt32() 
+                    : 0;
+
+                var userEmail = userElement.TryGetProperty("email", out var emailElement) 
+                    ? emailElement.GetString() 
+                    : "";
+
+                var roleId = userElement.TryGetProperty("role_id", out var roleElement) 
+                    ? roleElement.GetInt32() 
+                    : 1;
+
+                // Si no tenemos token, considerar como fallo
+                if (string.IsNullOrEmpty(token))
+                {
+                    return LoginResponseDto.Failure("Token no encontrado en la respuesta");
+                }
+
+                // Crear DTO de sesión
+                var sessionDto = new UserSessionDto
+                {
+                    SessionId = Guid.NewGuid().ToString(),
+                    UserId = userId,
+                    UserEmail = userEmail ?? string.Empty,
+                    UserRut = string.Empty, // No viene en la respuesta por ahora
+                    RoleId = roleId,
+                    CreatedAt = DateTime.UtcNow,
+                    ExpiresAt = expiresAt,
+                    IsActive = true
+                };
+
+                return LoginResponseDto.Success(
+                    token,
+                    expiresAt,
+                    sessionDto.SessionId,
+                    sessionDto
+                );
+            }
+            catch (Exception ex)
+            {
+                return LoginResponseDto.Failure($"Error al parsear respuesta: {ex.Message}");
+            }
         }
 
         #endregion

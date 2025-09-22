@@ -61,3 +61,40 @@ class UsuarioModel(models.Model):
     
     def __str__(self):
         return f"{self.usua_email} ({self.usua_rut})"
+
+
+class SesionTokenModel(models.Model):
+    """
+    Django model for SesionToken entity.
+    Infrastructure concern - database representation.
+    """
+    
+    token_id = models.AutoField(primary_key=True)
+    usua_id = models.ForeignKey(
+        UsuarioModel,
+        on_delete=models.CASCADE,
+        db_column='usua_id'
+    )
+    token_valor = models.CharField(max_length=36, unique=True)  # UUID
+    token_creado_en = models.DateTimeField(auto_now_add=True)
+    token_expira_en = models.DateTimeField()
+    token_activo = models.BooleanField(default=True)
+    
+    class Meta:
+        db_table = 'Sesion_Token'
+        verbose_name = 'Token de Sesión'
+        verbose_name_plural = 'Tokens de Sesión'
+        ordering = ['-token_creado_en']
+        indexes = [
+            models.Index(fields=['token_valor']),
+            models.Index(fields=['usua_id', 'token_activo']),
+        ]
+    
+    def __str__(self):
+        return f"Token {self.token_valor[:8]}... para {self.usua_id.usua_email}"
+    
+    @property
+    def is_expired(self):
+        """Verifica si el token ha expirado"""
+        from django.utils import timezone
+        return timezone.now() > self.token_expira_en

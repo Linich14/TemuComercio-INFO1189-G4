@@ -144,10 +144,19 @@
             // Llamar al servicio de autenticación
             var response = await AuthService.LoginAsync(request);
 
-            if (response.IsSuccess && !string.IsNullOrEmpty(response.SessionId))
+            if (response.IsSuccess && !string.IsNullOrEmpty(response.Token))
             {
-                // Login exitoso: guardar sesión en localStorage del navegador
-                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "sessionId", response.SessionId);
+                // Login exitoso: guardar token y datos de sesión en localStorage del navegador
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", response.Token);
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "tokenExpiresAt", response.TokenExpiresAt?.ToString("O") ?? "");
+                
+                // Opcional: guardar datos del usuario
+                if (response.UserSession != null)
+                {
+                    await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userId", response.UserSession.UserId.ToString());
+                    await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userEmail", response.UserSession.UserEmail ?? "");
+                    await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userRoleId", response.UserSession.RoleId.ToString());
+                }
                 
                 // Redirigir al dashboard con recarga completa de la página
                 Navigation.NavigateTo("/dashboard", true);

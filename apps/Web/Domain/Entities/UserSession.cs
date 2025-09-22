@@ -10,7 +10,6 @@ namespace Domain.Entities
         public int UserId { get; private set; }
         public string UserRut { get; private set; } = null!;
         public string UserEmail { get; private set; } = null!;
-        public string UserName { get; private set; } = null!;
         public DateTime CreatedAt { get; private set; }
         public DateTime ExpiresAt { get; private set; }
         public bool IsActive { get; private set; }
@@ -19,13 +18,12 @@ namespace Domain.Entities
         private UserSession() { }
 
         private UserSession(string sessionId, int userId, string userRut, string userEmail, 
-                           string userName, DateTime expiresAt)
+                           DateTime expiresAt)
         {
             SessionId = sessionId;
             UserId = userId;
             UserRut = userRut;
             UserEmail = userEmail;
-            UserName = userName;
             CreatedAt = DateTime.UtcNow;
             ExpiresAt = expiresAt;
             IsActive = true;
@@ -45,7 +43,6 @@ namespace Domain.Entities
                 user.Id, 
                 user.Rut.Value, 
                 user.Email.Value,
-                GetUserNameFromEmail(user.Email.Value),
                 expiresAt
             );
         }
@@ -75,14 +72,6 @@ namespace Domain.Entities
         public void Deactivate()
         {
             IsActive = false;
-        }
-
-        /// <summary>
-        /// Obtiene un nombre de usuario básico desde el email.
-        /// </summary>
-        private static string GetUserNameFromEmail(string email)
-        {
-            return email.Split('@')[0];
         }
 
         /// <summary>

@@ -24,6 +24,7 @@ builder.Services.AddScoped<IAuthenticationDomainService, AuthenticationDomainSer
 
 // Application Services - Casos de uso y orquestación
 builder.Services.AddScoped<IAuthenticationService, Infrastructure.Services.AuthenticationService>();
+builder.Services.AddScoped<Application.Services.AuthenticationStateService>();
 
 // Construir y ejecutar la aplicación
 await builder.Build().RunAsync();

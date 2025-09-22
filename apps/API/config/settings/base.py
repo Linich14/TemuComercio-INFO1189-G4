@@ -149,4 +149,13 @@ CORS_ALLOWED_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'x-debug-token',
+    'x-debug-user-id',
+    'x-debug-role-id',
+]
+
+CORS_EXPOSE_HEADERS = [
+    'x-debug-token',
+    'x-debug-user-id',
+    'x-debug-role-id',
 ]

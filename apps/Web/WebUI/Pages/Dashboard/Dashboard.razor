@@ -1,8 +1,10 @@
 @page "/dashboard"
 @using Application.DTOs
 @using Application.Interfaces
+@using Application.Services
 @using Microsoft.JSInterop
 @inject IAuthenticationService AuthService
+@inject AuthenticationStateService AuthStateService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 
@@ -20,7 +22,7 @@
     {
         <div class="max-w-4xl mx-auto">
             <div class="bg-white rounded-lg shadow p-6 mb-6">
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">¡Bienvenido, @currentUser.UserName!</h1>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">¡Bienvenido, @currentUser.UserEmail!</h1>
                 <p class="text-gray-600">Has iniciado sesión exitosamente en TemuComercio</p>
             </div>
             
@@ -89,7 +91,7 @@
 @code {
     private UserSessionDto? currentUser;
     private bool isLoading = true;
-    private string? sessionId;
+    private string? authToken;
 
     protected override async Task OnInitializedAsync()
     {
@@ -100,22 +102,41 @@
     {
         try
         {
-            sessionId = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "sessionId");
+            // Obtener token del localStorage usando AuthenticationStateService
+            authToken = await AuthStateService.GetTokenAsync();
             
-            if (!string.IsNullOrEmpty(sessionId))
+            if (!string.IsNullOrEmpty(authToken))
             {
-                currentUser = await AuthService.GetCurrentSessionAsync(sessionId);
+                // Verificar si el token no ha expirado
+                var isExpired = await AuthStateService.IsTokenExpiredAsync();
                 
-                if (currentUser == null)
+                if (!isExpired)
                 {
-                    // Sesión inválida, limpiar localStorage
-                    await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "sessionId");
+                    // Token válido, validar con el backend
+                    var isValidToken = await AuthService.IsTokenValidAsync(authToken);
+                    
+                    if (isValidToken)
+                    {
+                        // Crear UserSessionDto desde localStorage
+                        currentUser = await CreateUserSessionFromStorage();
+                    }
+                    else
+                    {
+                        // Token inválido en backend, limpiar localStorage
+                        await AuthStateService.ClearAuthenticationAsync();
+                    }
+                }
+                else
+                {
+                    // Token expirado, limpiar localStorage
+                    await AuthStateService.ClearAuthenticationAsync();
                 }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error al cargar sesión: {ex.Message}");
+            await AuthStateService.ClearAuthenticationAsync();
         }
         finally
         {
@@ -123,11 +144,48 @@
         }
     }
 
+    private async Task<UserSessionDto?> CreateUserSessionFromStorage()
+    {
+        try
+        {
+            var userIdString = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "userId");
+            var userEmail = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "userEmail");
+            var roleIdString = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "userRoleId");
+            var tokenExpiresAtString = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "tokenExpiresAt");
+
+            if (!string.IsNullOrEmpty(userIdString) && 
+                !string.IsNullOrEmpty(userEmail) && 
+                int.TryParse(userIdString, out var userId) &&
+                int.TryParse(roleIdString, out var roleId))
+            {
+                DateTime.TryParse(tokenExpiresAtString, out var expiresAt);
+
+                return new UserSessionDto
+                {
+                    SessionId = Guid.NewGuid().ToString(), // ID temporal para el frontend
+                    UserId = userId,
+                    UserEmail = userEmail,
+                    UserRut = string.Empty,
+                    RoleId = roleId,
+                    CreatedAt = DateTime.Now, // Aproximado
+                    ExpiresAt = expiresAt,
+                    IsActive = true
+                };
+            }
+
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private async Task ExtendSession()
     {
-        if (!string.IsNullOrEmpty(sessionId))
+        if (!string.IsNullOrEmpty(authToken))
         {
-            var extended = await AuthService.ExtendSessionAsync(sessionId);
+            var extended = await AuthService.ExtendSessionAsync(authToken);
             if (extended)
             {
                 await LoadCurrentSession(); // Recargar datos de sesión
@@ -137,11 +195,13 @@
 
     private async Task Logout()
     {
-        if (!string.IsNullOrEmpty(sessionId))
+        if (!string.IsNullOrEmpty(authToken))
         {
-            await AuthService.LogoutAsync(sessionId);
-            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "sessionId");
+            await AuthService.LogoutByTokenAsync(authToken);
         }
+        
+        // Limpiar localStorage
+        await AuthStateService.ClearAuthenticationAsync();
         
         Navigation.NavigateTo("/welcome", true);
     }
