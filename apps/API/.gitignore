@@ -50,3 +50,5 @@ var/
 # OS
 .DS_Store
 Thumbs.db
+
+docker/
