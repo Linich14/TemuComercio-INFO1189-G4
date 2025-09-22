@@ -1,0 +1,1 @@
+# Interface adapters - Controllers, presenters, gateways
