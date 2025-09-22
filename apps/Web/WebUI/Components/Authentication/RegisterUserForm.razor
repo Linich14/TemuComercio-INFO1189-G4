@@ -7,6 +7,7 @@
 @namespace Web.WebUI.Components.Authentication
 
 @using System.ComponentModel.DataAnnotations
+@using System.Linq
 @using Application.DTOs
 @using Application.Interfaces
 @using Application.Validators
@@ -84,9 +85,17 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
         </div>
-        <InputText id="password" @bind-Value="registrationModel.Password" type="password" 
+        <InputText id="password" @bind-Value="registrationModel.Password" @oninput="OnPasswordInput" type="password" 
                    class="w-full pl-10 pr-4 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white" 
-                   placeholder="Contraseña" />
+                   placeholder="Contraseña (ej: Administrador123!)" />
+        @if (!string.IsNullOrEmpty(passwordStrengthError))
+        {
+            <div class="text-red-500 text-xs mt-1">@passwordStrengthError</div>
+        }
+        @if (!string.IsNullOrEmpty(passwordStrengthInfo))
+        {
+            <div class="text-blue-600 text-xs mt-1">@passwordStrengthInfo</div>
+        }
         <ValidationMessage For="@(() => registrationModel.Password)" class="text-red-500 text-xs mt-1" />
     </div>
 
@@ -97,9 +106,17 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
         </div>
-        <InputText id="confirmPassword" @bind-Value="registrationModel.ConfirmPassword" type="password" 
+        <InputText id="confirmPassword" @bind-Value="registrationModel.ConfirmPassword" @oninput="OnConfirmPasswordInput" type="password" 
                    class="w-full pl-10 pr-4 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white" 
                    placeholder="Confirmar Contraseña" />
+        @if (!string.IsNullOrEmpty(passwordMatchError))
+        {
+            <div class="text-red-500 text-xs mt-1">@passwordMatchError</div>
+        }
+        @if (!string.IsNullOrEmpty(passwordMatchSuccess))
+        {
+            <div class="text-green-600 text-xs mt-1">@passwordMatchSuccess</div>
+        }
         <ValidationMessage For="@(() => registrationModel.ConfirmPassword)" class="text-red-500 text-xs mt-1" />
     </div>
 
@@ -160,6 +177,10 @@
     // Errores de formato en tiempo real
     private string rutFormatError = string.Empty;
     private string emailFormatError = string.Empty;
+    private string passwordStrengthError = string.Empty;
+    private string passwordStrengthInfo = string.Empty;
+    private string passwordMatchError = string.Empty;
+    private string passwordMatchSuccess = string.Empty;
 
     /// <summary>
     /// Maneja el envío válido del formulario
@@ -173,6 +194,10 @@
             successMessage = string.Empty;
             rutFormatError = string.Empty;
             emailFormatError = string.Empty;
+            passwordStrengthError = string.Empty;
+            passwordStrengthInfo = string.Empty;
+            passwordMatchError = string.Empty;
+            passwordMatchSuccess = string.Empty;
 
             // Validar usando el validador de la capa Application
             var validator = new UserRegistrationValidator();
@@ -281,5 +306,79 @@
         }
         
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Validación en tiempo real de la fortaleza de la contraseña
+    /// </summary>
+    private void OnPasswordInput(ChangeEventArgs e)
+    {
+        var password = e.Value?.ToString() ?? string.Empty;
+        registrationModel.Password = password;
+        
+        if (string.IsNullOrEmpty(password))
+        {
+            passwordStrengthError = string.Empty;
+            passwordStrengthInfo = string.Empty;
+        }
+        else
+        {
+            var requirements = new List<string>();
+            
+            if (password.Length < 8) requirements.Add("8 caracteres");
+            if (!System.Text.RegularExpressions.Regex.IsMatch(password, @"[a-z]")) requirements.Add("1 minúscula");
+            if (!System.Text.RegularExpressions.Regex.IsMatch(password, @"[A-Z]")) requirements.Add("1 mayúscula");
+            if (!System.Text.RegularExpressions.Regex.IsMatch(password, @"\d")) requirements.Add("1 número");
+            if (!System.Text.RegularExpressions.Regex.IsMatch(password, @"[@$!%*?&]")) requirements.Add("1 símbolo (@$!%*?&)");
+            
+            if (requirements.Any())
+            {
+                passwordStrengthError = $"Falta: {string.Join(", ", requirements)}";
+                passwordStrengthInfo = string.Empty;
+            }
+            else
+            {
+                passwordStrengthError = string.Empty;
+                passwordStrengthInfo = "✓ Contraseña segura";
+            }
+        }
+        
+        // También validar coincidencia si ya hay confirmación
+        ValidatePasswordMatch();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Validación en tiempo real de la confirmación de contraseña
+    /// </summary>
+    private void OnConfirmPasswordInput(ChangeEventArgs e)
+    {
+        var confirmPassword = e.Value?.ToString() ?? string.Empty;
+        registrationModel.ConfirmPassword = confirmPassword;
+        
+        ValidatePasswordMatch();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Valida que las contraseñas coincidan
+    /// </summary>
+    private void ValidatePasswordMatch()
+    {
+        if (string.IsNullOrEmpty(registrationModel.ConfirmPassword))
+        {
+            passwordMatchError = string.Empty;
+            passwordMatchSuccess = string.Empty;
+        }
+        else if (registrationModel.Password != registrationModel.ConfirmPassword)
+        {
+            passwordMatchError = "Las contraseñas no coinciden";
+            passwordMatchSuccess = string.Empty;
+        }
+        else
+        {
+            passwordMatchError = string.Empty;
+            passwordMatchSuccess = "✓ Las contraseñas coinciden";
+        }
     }
 }

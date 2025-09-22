@@ -31,12 +31,14 @@ namespace Application.DTOs
 
         /// <summary>
         /// Contraseña del usuario (usua_pass en BD)
-        /// Debe tener al menos 6 caracteres por seguridad mínima
+        /// Debe cumplir requisitos de seguridad: mínimo 8 caracteres, mayúscula, minúscula, número y símbolo
         /// Se encriptará en el backend antes de almacenar
         /// </summary>
         [Required(ErrorMessage = "La contraseña es obligatoria")]
-        [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
+        [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres")]
         [StringLength(128, ErrorMessage = "La contraseña no puede exceder 128 caracteres")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$", 
+            ErrorMessage = "La contraseña debe contener al menos: 8 caracteres, 1 mayúscula, 1 minúscula, 1 número y 1 símbolo (@$!%*?&)")]
         public string Password { get; set; } = string.Empty;
 
         /// <summary>
