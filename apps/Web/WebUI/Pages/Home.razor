@@ -1,23 +1,8 @@
 ﻿@page "/"
 @inject NavigationManager Navigation
 
-@if (!isAuthenticated)
+// Redirigir a la WelcomeScreen en vez de mostrar la landing directamente
+protected override void OnInitialized()
 {
-    Navigation.NavigateTo("/login", true);
-}
-else
-{
-    <h1>Bienvenido</h1>
-    <p>Ha entrado el usuario a la aplicación.</p>
-}
-
-@code {
-    private bool isAuthenticated = false; // Simulación, cambiar por lógica real cuando haya backend
-
-    protected override void OnInitialized()
-    {
-        // Aquí se debería comprobar si el usuario está autenticado
-        // Por ahora, siempre será false para forzar el login
-        isAuthenticated = false;
-    }
+    Navigation.NavigateTo("/welcome", true);
 }

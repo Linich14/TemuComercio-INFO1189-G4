@@ -1,0 +1,223 @@
+@*
+    Componente de formulario de inicio de sesión
+    Maneja la autenticación de usuarios con validación de email y contraseña
+    Cumple con SRP: solo se encarga del formulario de login
+    Cumple con DIP: depende de IAuthenticationService abstracción
+*@
+@namespace Web.WebUI.Components.Authentication
+
+@using System.ComponentModel.DataAnnotations
+@using Application.DTOs
+@using Application.Interfaces
+@using Microsoft.JSInterop
+@inject NavigationManager Navigation
+@inject IAuthenticationService AuthService
+@inject IJSRuntime JSRuntime
+
+<EditForm Model="loginModel" OnValidSubmit="HandleValidSubmit" class="space-y-4">
+    <DataAnnotationsValidator />
+    
+    @* Título del formulario *@
+    <div class="text-center mb-2">
+        <h1 class="text-2xl font-bold text-[#1976D2] ">Inicio de sesión</h1>
+        <img src="assets/logo_cuadrado_sinfondo.png" alt="logo temucomercio" class="mx-auto w-48 h-48" />
+    </div>
+    
+    @* Mostrar mensaje de error si existe *@
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            @errorMessage
+        </div>
+    }
+    
+    @* Campo de Correo Electrónico con ícono *@
+    <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <!-- Envelope (mail) icon -->
+            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m0 8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h14a2 2 0 012 2v8z" />
+            </svg>
+        </div>
+        <InputText id="email" @bind-Value="loginModel.Email" @oninput="OnEmailInput"
+                   class="w-full pl-10 pr-4 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white" 
+                   placeholder="Correo Electrónico" />
+        @if (!string.IsNullOrEmpty(emailFormatError))
+        {
+            <div class="text-red-500 text-xs mt-1">@emailFormatError</div>
+        }
+        <ValidationMessage For="@(() => loginModel.Email)" class="text-red-500 text-xs mt-1" />
+    </div>
+    
+    @* Campo de contraseña con ícono *@
+    <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+        </div>
+        <InputText id="password" @bind-Value="loginModel.Password" type="password" 
+                   class="w-full pl-10 pr-4 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white" 
+                   placeholder="Contraseña" />
+        <ValidationMessage For="@(() => loginModel.Password)" class="text-red-500 text-xs mt-1" />
+    </div>
+    
+    @* Botón de Iniciar Sesión *@
+    <button type="submit" disabled="@isLoading" 
+            class="w-full bg-[#1976D2] text-white py-3 rounded-lg font-medium text-lg disabled:opacity-50 hover:bg-[#1565C0] transition-colors duration-200">
+        @if (isLoading)
+        {
+            <span>Iniciando sesión...</span>
+        }
+        else
+        {
+            <span>Iniciar Sesión</span>
+        }
+    </button>
+    
+    @* Checkbox "Recordarme" *@
+    <div class="flex items-center justify-center mt-4">
+        <InputCheckbox id="rememberMe" @bind-Value="loginModel.RememberMe" class="mr-2 text-blue-600" />
+        <label for="rememberMe" class="text-sm text-gray-600">Recordarme</label>
+    </div>
+    
+    @* Enlace para volver *@
+    <div class="text-center mt-4">
+        <a class="text-[#1976D2] text-sm hover:underline" href="/welcome">Volver</a>
+    </div>
+    
+    @* Enlace "¿Olvidaste tu contraseña?" *@
+    <div class="text-center mt-2">
+        <a class="text-[#1976D2] text-sm hover:underline" href="/recuperar">¿Olvidaste tu contraseña?</a>
+    </div>
+</EditForm>
+
+@code {
+    // Modelo de datos para el formulario de login
+    private LoginModel loginModel = new();
+    
+    // Mensaje de error para mostrar al usuario
+    private string errorMessage = string.Empty;
+    
+    // Estado de carga para deshabilitar el formulario durante el proceso
+    private bool isLoading = false;
+
+    /// <summary>
+    /// Maneja el envío del formulario cuando todas las validaciones son correctas
+    /// Realiza el proceso de autenticación y redirige al usuario si es exitoso
+    /// </summary>
+    private async Task HandleValidSubmit()
+    {
+        // Validar email en vivo y en submit
+        if (string.IsNullOrWhiteSpace(loginModel.Email) || !IsValidEmail(loginModel.Email))
+        {
+            emailFormatError = string.IsNullOrWhiteSpace(loginModel.Email)
+                ? "El correo es obligatorio"
+                : "Formato de correo inválido (ej: usuario@dominio.com)";
+            return;
+        }
+        // Activar estado de carga y limpiar errores previos
+        isLoading = true;
+        errorMessage = string.Empty;
+        
+        try
+        {
+            // Crear DTO con los datos del formulario
+            var request = new LoginRequestDto
+            {
+                Email = loginModel.Email ?? string.Empty,
+                Password = loginModel.Password ?? string.Empty,
+                RememberMe = loginModel.RememberMe
+            };
+
+            // Llamar al servicio de autenticación
+            var response = await AuthService.LoginAsync(request);
+
+            if (response.IsSuccess && !string.IsNullOrEmpty(response.SessionId))
+            {
+                // Login exitoso: guardar sesión en localStorage del navegador
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "sessionId", response.SessionId);
+                
+                // Redirigir al dashboard con recarga completa de la página
+                Navigation.NavigateTo("/dashboard", true);
+            }
+            else
+            {
+                // Login fallido: mostrar mensaje de error
+                errorMessage = response.Message;
+                
+                // Agregar errores específicos si existen
+                if (response.Errors.Any())
+                {
+                    errorMessage += ": " + string.Join(", ", response.Errors);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Manejar errores inesperados (problemas de conexión, etc.)
+            errorMessage = $"Error inesperado: {ex.Message}";
+        }
+        finally
+        {
+            // Desactivar estado de carga
+            isLoading = false;
+        }
+    }
+
+    // Live email validation support
+    private string? emailFormatError;
+
+    private void OnEmailInput(ChangeEventArgs e)
+    {
+        loginModel.Email = e?.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(loginModel.Email))
+        {
+            emailFormatError = "El correo es obligatorio";
+            return;
+        }
+        emailFormatError = IsValidEmail(loginModel.Email) ? null : "Formato de correo inválido (ej: usuario@dominio.com)";
+    }
+
+    private bool IsValidEmail(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return false;
+        try
+        {
+            var pattern = @"^[^\s@]+@[^\s@]+\.[^\s@]+$";
+            return System.Text.RegularExpressions.Regex.IsMatch(email, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Modelo de datos para el formulario de login con validaciones
+    /// Solo acepta correo electrónico y contraseña
+    /// </summary>
+    public class LoginModel
+    {
+        /// <summary>
+        /// Correo electrónico del usuario
+        /// </summary>
+        [Required(ErrorMessage = "El correo es obligatorio")]
+        [EmailAddress(ErrorMessage = "Formato de correo inválido (ej: usuario@dominio.com)")]
+        public string? Email { get; set; }
+
+        /// <summary>
+        /// Contraseña del usuario con longitud mínima
+        /// Debe tener al menos 6 caracteres por seguridad básica
+        /// </summary>
+        [Required(ErrorMessage = "La contraseña es obligatoria")]
+        [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
+        public string? Password { get; set; }
+
+        /// <summary>
+        /// Indica si el usuario quiere que su sesión dure más tiempo
+        /// true = 30 días, false = 1 día
+        /// </summary>
+        public bool RememberMe { get; set; }
+    }
+}
