@@ -42,7 +42,7 @@ class LoginUseCase:
             raise UserNotFoundException("Usuario no encontrado")
         
         # Verificar que la cuenta esté activa
-        if not user.is_active:
+        if not user.estado:
             raise InactiveUserException("Cuenta desactivada")
         
         # Verificar contraseña

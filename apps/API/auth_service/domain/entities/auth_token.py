@@ -4,18 +4,20 @@ from typing import Optional
 @dataclass
 class AuthToken:
     """Entidad para tokens de autenticación"""
-    access_token: str
-    refresh_token: str
-    expires_at: int
-    token_type: str = "Bearer"
+    id: str
+    valor: str
+    creado_en: int
+    expira_en: Optional[int] = None
+    activo: bool = True
     user_id: Optional[str] = None
     
     def to_dict(self) -> dict:
         """Convierte el token a diccionario"""
         return {
-            'access_token': self.access_token,
-            'refresh_token': self.refresh_token,
-            'expires_at': self.expires_at,
-            'token_type': self.token_type,
+            'id': self.id,
+            'valor': self.valor,
+            'creado_en': self.creado_en,
+            'expira_en': self.expira_en,
+            'activo': self.activo,
             'user_id': self.user_id
         }
