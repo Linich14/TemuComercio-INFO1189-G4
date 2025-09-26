@@ -65,20 +65,6 @@ export const LoginScreen = () => {
 
                             <View className="px-4">
                                 <LoginForm onSubmit={handleLogin} />
-
-                                <View className="w-full">
-                                    <Pressable
-                                        style={style.shadow}
-                                        className="group rounded-full bg-white p-4 active:bg-[#0071CE]"
-                                        onPress={() =>
-                                            router.push('/(auth)/Register')
-                                        }
-                                    >
-                                        <Text className="text-center font-bold text-[#0071CE] group-active:text-white">
-                                            Registrarse
-                                        </Text>
-                                    </Pressable>
-                                </View>
                                 <TouchableOpacity
                                     className="p-2"
                                     onPress={() =>

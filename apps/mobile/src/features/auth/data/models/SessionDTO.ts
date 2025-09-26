@@ -2,7 +2,8 @@ import { UserDTO } from './UserDTO';
 
 export interface SessionDTO {
     user: UserDTO;
-    accessToken: string;
-    refreshToken?: string;
-    expiresAt?: string;
+    access_token: string;
+    refresh_token?: string;
+    expires_at?: string;
+    type?: string;
 }

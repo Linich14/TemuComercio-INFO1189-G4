@@ -13,6 +13,8 @@ import { RefreshTokenUseCase } from '../../domain/usecases/RefreshTokenUseCase';
 import { RegisterUseCase } from '../../domain/usecases/RegisterUseCase';
 import { User } from '../../domain/entities/User';
 
+import { AuthRepositoryImpl } from '../../data/repositories/AuthRepositoryImple';
+
 class AuthContainer {
     // Infraestructura y adaptadores
     private readonly tokenStorage: TokenStorage;
@@ -33,11 +35,20 @@ class AuthContainer {
         this.tokenStorage = new SecureTokenStorage();
         this.userStorage = new SecureUserStorage();
 
-        // Inicializar repositorios con sus dependencias
-        this.authRepository = new AuthRepositoryMock(
-            this.tokenStorage,
-            this.userStorage
-        );
+        // Cambiar entre mock y implementación real
+        const useRealAPI = process.env.EXPO_PUBLIC_ENV !== 'development';
+
+        if (useRealAPI) {
+            this.authRepository = new AuthRepositoryImpl(
+                this.tokenStorage,
+                this.userStorage
+            );
+        } else {
+            this.authRepository = new AuthRepositoryMock(
+                this.tokenStorage,
+                this.userStorage
+            );
+        }
 
         // Inicializar casos de uso con sus dependencias
         this.loginUseCase = new LoginUseCase(this.authRepository);

@@ -4,7 +4,7 @@ export class Email {
         if (!this.isValid(email)) throw new Error('Email inválido');
         return new Email(email.toLowerCase());
     }
-    toString() {
+    toString(): string {
         return this.value;
     }
 

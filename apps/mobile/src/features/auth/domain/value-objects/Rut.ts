@@ -23,7 +23,7 @@ export class Rut {
         return this.value.length;
     }
 
-    getValue(): string {
+    toJSON() {
         return this.value;
     }
 }

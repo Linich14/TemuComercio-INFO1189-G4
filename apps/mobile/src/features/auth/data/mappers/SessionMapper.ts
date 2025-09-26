@@ -3,21 +3,21 @@ import { SessionDTO } from '../models/SessionDTO';
 import { toDomainUser, toUserDTO } from './UserMapper';
 
 export class SessionMapper {
-    toDomain(dto: SessionDTO): Session {
+    static toDomain(dto: SessionDTO): Session {
         return {
             user: toDomainUser(dto.user),
-            accessToken: dto.accessToken,
-            refreshToken: dto.refreshToken,
-            expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
+            accessToken: dto.access_token,
+            refreshToken: dto.refresh_token,
+            expiresAt: dto.expires_at ? new Date(dto.expires_at) : undefined,
         };
     }
 
-    toDTO(domain: Session): SessionDTO {
+    static toDTO(domain: Session): SessionDTO {
         return {
             user: toUserDTO(domain.user),
-            accessToken: domain.accessToken,
-            refreshToken: domain.refreshToken,
-            expiresAt: domain.expiresAt?.toISOString(),
+            access_token: domain.accessToken,
+            refresh_token: domain.refreshToken,
+            expires_at: domain.expiresAt?.toISOString(),
         };
     }
 }

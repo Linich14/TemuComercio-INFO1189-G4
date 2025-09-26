@@ -2,7 +2,7 @@ import { View, Text, Button } from 'react-native';
 import { useAuth } from '../../src/features/auth/presentation/providers/AuthProvider';
 
 export default function HomeScreen() {
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
 
     const handleLogout = async () => {
         try {
@@ -16,6 +16,8 @@ export default function HomeScreen() {
     return (
         <View className="flex-1 items-center justify-center">
             <Text>Pantalla Home</Text>
+            <Text>{`${user?.rut ?? ''}`}</Text>
+            <Text>{user?.email ? String(user.email) : ''}</Text>
             <Button title="Cerrar sesión" onPress={handleLogout} />
         </View>
     );

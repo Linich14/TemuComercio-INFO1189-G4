@@ -78,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 error:
                     error instanceof Error
                         ? error.message
-                        : 'Error al iniciar sesión',
+                        : 'Error al iniciar sesiónsdfgsdf',
             });
             throw error;
         }
