@@ -45,15 +45,45 @@ src/
 4. **Interface Segregation**: Interfaces específicas y pequeñas
 5. **Dependency Inversion**: Dependencias abstraídas mediante interfaces
 
+## Configuración
+
+### Variables de Entorno
+
+1. **Copia el archivo de ejemplo**:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Configura Supabase**:
+   - Obtén tus credenciales desde [Supabase Dashboard](https://app.supabase.com)
+   - Actualiza el archivo `.env` con tus credenciales reales
+   - Asegúrate de usar el pooler de conexiones (puerto 6543) para mejor rendimiento
+
+3. **Genera una nueva SECRET_KEY**:
+   ```bash
+   python generate_secret_key.py
+   ```
+
+### Configuración de Base de Datos
+
+El proyecto está configurado para usar **Supabase (PostgreSQL)** con Connection Pooling como base de datos principal, con fallback automático a SQLite para desarrollo local.
+
+#### Supabase PostgreSQL
+La configuración incluye:
+- **Connection Pooling**: Optimizado para mejor rendimiento
+- **SSL**: Conexión segura requerida
+- **Transaction Isolation**: Configurado para read_committed
+- **Timezone**: UTC por defecto
+
+#### Fallback automático
+Si no configuras Supabase, la aplicación usará SQLite automáticamente para desarrollo local.
+
 ## Comandos Útiles
 
 ### Desarrollo
 ```powershell
 # Activar entorno virtual
 .venv\Scripts\Activate.ps1
-
-# Verificar configuración de Supabase
-& .venv\Scripts\python.exe manage.py test_supabase
 
 # Iniciar servidor de desarrollo
 & .venv\Scripts\python.exe manage.py runserver

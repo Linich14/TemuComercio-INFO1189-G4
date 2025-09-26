@@ -33,14 +33,14 @@ class SupabaseService:
         supabase_key = os.getenv('SUPABASE_ANON_KEY')
         
         if not supabase_url or not supabase_key:
-            print("⚠️  Supabase URL or ANON_KEY not configured. Supabase client not available.")
+            print("WARNING: Supabase URL or ANON_KEY not configured. Supabase client not available.")
             return
         
         try:
             self._client = create_client(supabase_url, supabase_key)
-            print("✅ Supabase client initialized successfully")
+            print("SUCCESS: Supabase client initialized successfully")
         except Exception as e:
-            print(f"❌ Error initializing Supabase client: {e}")
+            print(f"ERROR: Error initializing Supabase client: {e}")
             self._client = None
     
     @property
@@ -62,7 +62,7 @@ class SupabaseService:
             self._client.table('pg_stat_database').select('datname').limit(1).execute()
             return True
         except Exception as e:
-            print(f"❌ Supabase connection test failed: {e}")
+            print(f"ERROR: Supabase connection test failed: {e}")
             return False
 
 

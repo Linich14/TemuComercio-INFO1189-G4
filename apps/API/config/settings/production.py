@@ -33,6 +33,7 @@ DATABASES = {
         'PORT': os.getenv('SUPABASE_DB_PORT', '5432'),
         'OPTIONS': {
             'sslmode': 'require',
+            'options': f'-c default_transaction_isolation=read_committed -c timezone=UTC'
         },
     }
 }
